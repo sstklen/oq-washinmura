@@ -24,8 +24,58 @@ const badRequestErrors = new Set([
   "no_fields",
 ]);
 
+const LEVEL_TITLES: Record<number, string> = {
+  1: "實習生 Intern",
+  2: "獨立開發者 Solo Dev",
+  3: "資深工程師 Senior Engineer",
+  4: "一人公司 One-Person Co.",
+  5: "一人科技公司 Solo Tech Co.",
+  6: "矽谷新創規格 SV Startup Tier",
+};
+
 export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number } }> {
   const app = new Hono<{ Variables: { userId: number } }>();
+
+  // SPEC-12: 單人 OQ 查詢（公開，不需登入）
+  app.get("/profile/:oqId", (c) => {
+    const oqIdStr = c.req.param("oqId");
+    const oqId = Number.parseInt(oqIdStr, 10);
+
+    if (Number.isNaN(oqId) || oqId < 1) {
+      return c.json({ error: "invalid_oq_id" }, 400);
+    }
+
+    const row = db.query(
+      `SELECT
+          oq_profiles.id AS oq_id,
+          COALESCE(users.display_name, 'Anonymous') AS display_name,
+          oq_profiles.oq_value,
+          oq_profiles.level,
+          oq_profiles.tokens_monthly,
+          oq_profiles.battle_record,
+          oq_profiles.updated_at
+       FROM oq_profiles
+       INNER JOIN users ON users.id = oq_profiles.user_id
+       WHERE oq_profiles.id = ?`,
+    ).get(oqId) as { oq_id: number; display_name: string | null; oq_value: number; level: number | null; tokens_monthly: number | null; battle_record: string | null; updated_at: string | null } | null;
+
+    if (!row) {
+      return c.json({ error: "oq_not_found" }, 404);
+    }
+
+    return c.json({
+      profile: {
+        oq_id: row.oq_id,
+        display_name: row.display_name ?? "Anonymous",
+        oq_value: row.oq_value,
+        level: row.level,
+        level_title: LEVEL_TITLES[row.level ?? 0] ?? "",
+        tokens_monthly: row.tokens_monthly,
+        battle_record: row.battle_record,
+        updated_at: row.updated_at,
+      },
+    });
+  });
 
   app.post("/submit", authGuard, async (c) => {
     const body = await c.req.json<SubmitOqInput>();
