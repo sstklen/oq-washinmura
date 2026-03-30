@@ -64,7 +64,7 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
         level: row.level,
         level_title: LEVEL_TITLES[row.level ?? 0] ?? "",
         tokens_monthly: row.tokens_monthly,
-        battle_record: row.battle_record,
+        battle_record: row.battle_record ? (() => { try { return JSON.parse(row.battle_record as string); } catch { return row.battle_record; } })() : null,
         updated_at: row.updated_at,
       },
     });
@@ -96,10 +96,11 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
     const authorization = c.req.header("authorization");
 
     try {
+      // 安全：userId 只能從 JWT 取，不能從 body 傳入（防 IDOR）
       const userId = await resolveUserIdFromAuthorization(authorization);
       const profile = updateOq(db, {
         ...body,
-        userId: userId ?? body.userId,
+        userId: userId ?? undefined,
       });
 
       return c.json({ profile });

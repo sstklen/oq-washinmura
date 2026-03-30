@@ -2,6 +2,11 @@ import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
 import { LEVEL_TITLES } from "../constants";
 
+function parseBattleRecordSafe(value: string | null): unknown {
+  if (!value) return null;
+  try { return JSON.parse(value); } catch { return value; }
+}
+
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 const DEFAULT_PAGE = 1;
@@ -135,7 +140,7 @@ export function createLeaderboardRoutes(db: Database): Hono {
         level: row.level,
         level_title: LEVEL_TITLES[row.level ?? 0] ?? "",
         tokens_monthly: row.tokens_monthly,
-        battle_record: row.battle_record,
+        battle_record: parseBattleRecordSafe(row.battle_record),
         updated_at: row.updated_at,
       })),
       pagination: {

@@ -383,15 +383,20 @@ export function updateSettings(
     .query(`
       SELECT
         users.display_name,
+        oq_profiles.id AS oq_id,
         COALESCE(oq_profiles.contactable, 1) AS contactable
       FROM users
       LEFT JOIN oq_profiles ON oq_profiles.user_id = users.id
       WHERE users.id = ?
     `)
-    .get(userId) as { display_name: string | null; contactable: number } | null;
+    .get(userId) as { display_name: string | null; oq_id: number | null; contactable: number } | null;
 
   if (!userRow) {
     throw new Error("user_not_found");
+  }
+
+  if (!userRow.oq_id) {
+    throw new Error("oq_not_found");
   }
 
   db.transaction(() => {
@@ -400,14 +405,12 @@ export function updateSettings(
     }
 
     if (hasContactable) {
-      const result = db
-        .query("UPDATE oq_profiles SET contactable = ?, updated_at = datetime('now') WHERE user_id = ?")
+      db.query("UPDATE oq_profiles SET contactable = ? WHERE user_id = ?")
         .run(data.contactable ? 1 : 0, userId);
-
-      if (result.changes === 0) {
-        throw new Error("oq_not_found");
-      }
     }
+
+    // display_name 或 contactable 任一變動都更新 updated_at（SPEC-06）
+    db.query("UPDATE oq_profiles SET updated_at = datetime('now') WHERE user_id = ?").run(userId);
   })();
 
   return {

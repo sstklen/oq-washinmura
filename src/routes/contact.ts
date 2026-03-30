@@ -14,6 +14,9 @@ const badRequestErrors = new Set([
 
 const forbiddenErrors = new Set([
   "not_contactable",
+]);
+
+const contactBadRequestErrors = new Set([
   "cannot_contact_self",
 ]);
 
@@ -47,7 +50,7 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
           return c.json({ error: error.message }, 403);
         }
 
-        if (badRequestErrors.has(error.message)) {
+        if (badRequestErrors.has(error.message) || contactBadRequestErrors.has(error.message)) {
           return c.json({ error: error.message }, 400);
         }
 
