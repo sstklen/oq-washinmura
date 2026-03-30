@@ -38,6 +38,10 @@ export function setSesModuleLoader(loader: SesModuleLoader | null): void {
   sesModuleLoader = loader;
 }
 
+function shouldUseResend(): boolean {
+  return Boolean(process.env.OQ_RESEND_API_KEY);
+}
+
 function shouldUseSes(): boolean {
   return Boolean(process.env.OQ_AWS_ACCESS_KEY_ID);
 }
@@ -111,9 +115,40 @@ async function sendWithSes(to: string, subject: string, body: string): Promise<v
   }
 }
 
+async function sendWithResend(to: string, subject: string, body: string): Promise<void> {
+  const apiKey = process.env.OQ_RESEND_API_KEY;
+  const from = process.env.OQ_RESEND_FROM ?? DEFAULT_FROM_EMAIL;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ from, to: [to], subject, text: body }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Resend ${res.status}: ${err}`);
+      }
+      return;
+    } catch (error) {
+      if (attempt === 1) throw error;
+    }
+  }
+}
+
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   if (customEmailSender) {
     await customEmailSender(to, subject, body);
+    return;
+  }
+
+  if (shouldUseResend()) {
+    await sendWithResend(to, subject, body);
     return;
   }
 
