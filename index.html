@@ -235,33 +235,30 @@ input $5/M · output $25/M · cache write $10/M · cache read $0.50/M
     </p>
   </div>
 
-  <!-- Submit -->
+  <!-- How to Submit -->
   <div class="section">
     <div class="form-card">
-      <h2>提交你的 OQ</h2>
-      <div class="form-desc">上傳你的 OQ 值，登上排行榜。未來有人要找 AI 高手，我們會媒合。</div>
-      <div class="form-grid">
-        <div class="mode-toggle">
-          <button class="mode-btn active" onclick="setMode('static')">手動填寫</button>
-          <button class="mode-btn" onclick="setMode('api')">API 動態更新</button>
+      <h2>怎麼提交？</h2>
+      <div class="form-desc">複製上面的提示語，貼進 Claude Code，跑完後會自動問你要不要提交到排行榜。全程在 Claude Code 裡完成，不用填表。</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:20px;">
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:28px;">📋</div>
+          <div style="color:#fff; font-weight:600; margin-top:8px;">複製提示語</div>
+          <div style="color:rgba(168,237,234,0.5); font-size:13px; margin-top:4px;">按上面的複製按鈕</div>
         </div>
-        <div class="form-group">
-          <label>OQ 值（US$）</label>
-          <input type="number" id="oq-value" placeholder="例：81000">
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:28px;">⚡</div>
+          <div style="color:#fff; font-weight:600; margin-top:8px;">貼進 Claude Code</div>
+          <div style="color:rgba(168,237,234,0.5); font-size:13px; margin-top:4px;">AI 掃描 30 秒出報告</div>
         </div>
-        <div class="form-group">
-          <label>暱稱</label>
-          <input type="text" id="nickname" placeholder="你想被怎麼稱呼">
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:28px;">🏆</div>
+          <div style="color:#fff; font-weight:600; margin-top:8px;">自動提交</div>
+          <div style="color:rgba(168,237,234,0.5); font-size:13px; margin-top:4px;">輸入 email + 暱稱就上榜</div>
         </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="email" placeholder="不公開，僅媒合用">
-        </div>
-        <div class="form-note">Email 不會公開，僅在人脈媒合時通知你</div>
-        <div class="form-note" id="api-hint" style="display:none; color:#a8edea;">
-          API 動態更新：curl -X POST https://oq.washinmura.jp/api/submit -H "Content-Type: application/json" -d '{"oq":81000,"nickname":"你的名字","email":"you@mail.com"}'
-        </div>
-        <button class="submit-btn" onclick="submitOQ()">提交 OQ</button>
+      </div>
+      <div style="text-align:center; margin-top:16px; font-size:14px; color:rgba(168,237,234,0.4);">
+        上榜後，有公司/團隊想找 AI 高手時，我們會幫你媒合
       </div>
     </div>
   </div>
@@ -298,62 +295,36 @@ function showToast(msg) {
   setTimeout(() => t.style.display = 'none', 3000);
 }
 
-function setMode(mode) {
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('api-hint').style.display = mode === 'api' ? 'block' : 'none';
-}
-
-function getLevel(oq) {
-  if (oq >= 200000) return 'Lv.6 矽谷新創規格';
-  if (oq >= 50000) return 'Lv.5 一人科技公司';
-  if (oq >= 20000) return 'Lv.4 一人公司';
-  if (oq >= 5000) return 'Lv.3 資深工程師';
-  if (oq >= 1000) return 'Lv.2 獨立開發者';
-  return 'Lv.1 實習生';
-}
+function fmtNum(n) { return Number(n).toLocaleString(); }
 
 async function loadLeaderboard() {
   try {
     const res = await fetch('/api/leaderboard');
     if (!res.ok) return;
     const data = await res.json();
-    if (!data.length) return;
-    let html = '<table class="lb-table"><thead><tr><th>#</th><th>暱稱</th><th>OQ 值</th><th>等級</th></tr></thead><tbody>';
-    data.forEach((item, i) => {
+    if (!data.leaderboard || !data.leaderboard.length) return;
+    let html = '<table class="lb-table"><thead><tr><th>#</th><th>名稱</th><th>OQ 值</th><th>等級</th><th>月 Token</th></tr></thead><tbody>';
+    data.leaderboard.forEach((item, i) => {
       const rc = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      html += `<tr><td class="rank ${rc}">${i+1}</td><td>${item.nickname}</td><td class="oq-val">US$${Number(item.oq).toLocaleString()}</td><td><span class="lv-badge">${getLevel(item.oq)}</span></td></tr>`;
+      const tokens = item.tokens_monthly > 1e9
+        ? (item.tokens_monthly / 1e9).toFixed(1) + 'B'
+        : item.tokens_monthly > 1e6
+        ? (item.tokens_monthly / 1e6).toFixed(0) + 'M'
+        : fmtNum(item.tokens_monthly || 0);
+      html += `<tr>
+        <td class="rank ${rc}">${i+1}</td>
+        <td>${item.display_name}</td>
+        <td class="oq-val">US$${fmtNum(item.oq_value)}</td>
+        <td><span class="lv-badge">${item.level_title || 'Lv.' + item.level}</span></td>
+        <td style="color:rgba(168,237,234,0.6)">${tokens}</td>
+      </tr>`;
     });
     html += '</tbody></table>';
+    if (data.pagination.total > 0) {
+      html += `<div style="text-align:center; margin-top:12px; font-size:13px; color:rgba(168,237,234,0.35);">共 ${data.pagination.total} 人上榜</div>`;
+    }
     document.getElementById('leaderboard').innerHTML = html;
   } catch(e) {}
-}
-
-async function submitOQ() {
-  const oq = document.getElementById('oq-value').value;
-  const nickname = document.getElementById('nickname').value;
-  const email = document.getElementById('email').value;
-  if (!oq || !nickname || !email) return showToast('請填寫所有欄位');
-
-  const btn = document.querySelector('.submit-btn');
-  btn.disabled = true; btn.textContent = '提交中...';
-  try {
-    const res = await fetch('/api/submit', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({oq:Number(oq), nickname, email})
-    });
-    if (res.ok) {
-      showToast('提交成功！歡迎加入 OQ 排行榜');
-      document.getElementById('oq-value').value = '';
-      document.getElementById('nickname').value = '';
-      document.getElementById('email').value = '';
-      loadLeaderboard();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      showToast(err.error || '提交失敗，請稍後再試');
-    }
-  } catch(e) { showToast('網路錯誤，請稍後再試'); }
-  btn.disabled = false; btn.textContent = '提交 OQ';
 }
 
 loadLeaderboard();
