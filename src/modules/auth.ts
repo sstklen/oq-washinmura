@@ -64,7 +64,7 @@ export async function sendCode(db: Database, email: string): Promise<void> {
   db.query("INSERT INTO auth_codes (email, code, expires_at) VALUES (?, ?, ?)")
     .run(normalizedEmail, code, expiresAt);
 
-  await sendEmail(normalizedEmail, "Your login code", `Code: ${code}`);
+  await sendEmail(normalizedEmail, "OQ 驗證碼", `你的驗證碼：${code}\n\n10 分鐘內有效，請勿分享給他人。`);
 }
 
 export async function verifyCode(

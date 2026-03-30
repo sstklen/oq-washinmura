@@ -90,7 +90,7 @@ async function getJsonField(c: Context, fieldName: string): Promise<string> {
     const body = await c.req.json<Record<string, unknown>>();
     const value = body[fieldName];
 
-    return typeof value === "string" ? value : "anonymous";
+    return typeof value === "string" ? value.trim().toLowerCase() : "anonymous";
   } catch {
     return "anonymous";
   }

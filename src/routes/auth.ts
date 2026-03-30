@@ -35,7 +35,7 @@ export function createAuthRoutes(db: Database): Hono {
     }
 
     if (typeof body.code !== "string") {
-      return c.json({ error: "invalid_code" }, 401);
+      return c.json({ error: "missing_fields" }, 400);
     }
 
     try {

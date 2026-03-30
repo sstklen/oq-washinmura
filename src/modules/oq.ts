@@ -156,7 +156,11 @@ function parseBattleRecord(value: string | null): BattleRecord | null {
     return null;
   }
 
-  return JSON.parse(value) as BattleRecord;
+  try {
+    return JSON.parse(value) as BattleRecord;
+  } catch {
+    return null;
+  }
 }
 
 function validateOptionalOqFields(data: UpdateOqInput) {
