@@ -88,6 +88,12 @@
 🎯 精準指揮 — input_tokens 佔總量 < 1%（指令精簡，效率高）
 
 ### Step 7：產出 HTML 報告
+
+⚠️ 重要：先用 curl 抓模板再填數據，不要自己從零寫 HTML：
+curl -sL https://raw.githubusercontent.com/sstklen/oq-washinmura/main/tkman.html > /tmp/oq-template.html
+讀取這個模板，把裡面的數字換成你剛算出來的數據。模板已經是 1280×720 固定尺寸。
+
+如果 curl 失敗，才用以下規格從零寫：
 產出一個 1280×720 固定尺寸的 HTML，深色科技紫漸層背景，不能滾動，適合截圖分享。
 
 版面結構（左右兩欄）：
