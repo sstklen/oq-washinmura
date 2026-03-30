@@ -334,24 +334,15 @@
       <input class="sf-input" id="sf-code" type="text" placeholder="6 位數字驗證碼" maxlength="6">
       <button class="sf-btn" onclick="sfVerify()">驗證</button>
     </div>
-    <!-- Step 3: Nickname + 數據授權 -->
+    <!-- Step 3: Nickname + 授權 -->
     <div class="sf-step" id="sf-step3">
-      <h3>✏️ 設定 &amp; 授權</h3>
+      <h3>✏️ 最後一步</h3>
       <input class="sf-input" id="sf-name" type="text" placeholder="排行榜暱稱（本名、暱稱、江湖名都行）">
-      <div style="font-size:15px;color:rgba(168,237,234,0.6);margin:12px 0 8px">選擇你要分享的數據：</div>
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
-        <input type="checkbox" id="sf-share-basic" checked disabled style="width:18px;height:18px"> OQ 值 + 等級 + 月 Token（必要）
+      <label style="display:flex;align-items:start;gap:10px;margin:14px 0;font-size:17px;color:#a8edea;cursor:pointer;line-height:1.6">
+        <input type="checkbox" id="sf-share-all" checked style="width:22px;height:22px;margin-top:3px;flex-shrink:0">
+        <span>公開我的 OQ 數據（等級、戰績、AI 能力指紋），讓需要 AI 人才的企業和團隊能找到我</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
-        <input type="checkbox" id="sf-share-battle" checked style="width:18px;height:18px"> 戰績（Bash/Git/Edit/Agent/Web）
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
-        <input type="checkbox" id="sf-share-finger" checked style="width:18px;height:18px"> AI 能力指紋（快取率/連續天數/工作風格）
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:15px;color:#a8edea;cursor:pointer">
-        <input type="checkbox" id="sf-contact" checked style="width:18px;height:18px"> 讓找人方能聯絡我
-      </label>
-      <div style="font-size:13px;color:rgba(168,237,234,0.35);margin-bottom:12px">🔒 只上傳統計數字，不含任何對話內容。你隨時可以在排行榜取消。</div>
+      <div style="font-size:14px;color:rgba(168,237,234,0.35);margin-bottom:14px">🔒 只上傳統計數字，不含對話內容。Email 不公開。</div>
       <button class="sf-btn" onclick="sfSubmit()">提交到排行榜</button>
     </div>
     <!-- Step 4: Done -->
@@ -437,7 +428,7 @@ async function sfVerify() {
 async function sfSubmit() {
   const name = document.getElementById('sf-name').value.trim();
   if (!name) return sfMsg('請輸入暱稱', true);
-  const contactable = document.getElementById('sf-contact').checked;
+  const contactable = document.getElementById('sf-share-all')?.checked ?? true;
   try {
     // 設定暱稱
     await fetch(API + '/oq/settings', {
@@ -486,8 +477,10 @@ function getOqDataFromPage() {
 
   const data = { oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2 };
 
+  const shareAll = document.getElementById('sf-share-all')?.checked ?? true;
+
   // 戰績（用戶打勾才傳）
-  if (document.getElementById('sf-share-battle')?.checked) {
+  if (shareAll) {
     const cells = document.querySelectorAll('.battle-cell .bc-num');
     data.battle_record = {
       bash: parseNum(cells[0]),
@@ -500,7 +493,7 @@ function getOqDataFromPage() {
   }
 
   // 指紋（用戶打勾才傳）
-  if (document.getElementById('sf-share-finger')?.checked) {
+  if (shareAll) {
     const bars = document.querySelectorAll('.stat-bar');
     const statVals = document.querySelectorAll('.stat-val');
     const streak = document.querySelector('.fire + .days');
