@@ -1,18 +1,10 @@
 import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
+import { LEVEL_TITLES } from "../constants";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 const DEFAULT_PAGE = 1;
-
-const LEVEL_TITLES: Record<number, string> = {
-  1: "實習生 Intern",
-  2: "獨立開發者 Solo Dev",
-  3: "資深工程師 Senior Engineer",
-  4: "一人公司 One-Person Co.",
-  5: "一人科技公司 Solo Tech Co.",
-  6: "矽谷新創規格 SV Startup Tier",
-};
 
 type LeaderboardRow = {
   battle_record: string | null;

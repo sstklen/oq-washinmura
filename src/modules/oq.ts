@@ -57,7 +57,7 @@ type StoredOqProfileRow = {
   battle_record: string | null;
 };
 
-const htmlTagPattern = /<[^>]*>/g;
+import { HTML_TAG_PATTERN, hasField } from "../constants";
 
 export function calculateLevel(tokensMonthly: number): number {
   const dailyAverage = tokensMonthly / 30;
@@ -161,21 +161,21 @@ function parseBattleRecord(value: string | null): BattleRecord | null {
 
 function validateOptionalOqFields(data: UpdateOqInput) {
   if (
-    Object.prototype.hasOwnProperty.call(data, "oq_value") &&
+    hasField(data,"oq_value") &&
     (!Number.isInteger(data.oq_value) || (data.oq_value ?? 0) <= 0)
   ) {
     throw new Error("invalid_oq_value");
   }
 
   if (
-    Object.prototype.hasOwnProperty.call(data, "tokens_monthly") &&
+    hasField(data,"tokens_monthly") &&
     (!Number.isInteger(data.tokens_monthly) || (data.tokens_monthly ?? 0) < 0)
   ) {
     throw new Error("invalid_tokens_monthly");
   }
 
   if (
-    Object.prototype.hasOwnProperty.call(data, "api_cost_monthly") &&
+    hasField(data,"api_cost_monthly") &&
     (typeof data.api_cost_monthly !== "number" ||
       Number.isNaN(data.api_cost_monthly) ||
       data.api_cost_monthly < 0)
@@ -184,7 +184,7 @@ function validateOptionalOqFields(data: UpdateOqInput) {
   }
 
   if (
-    Object.prototype.hasOwnProperty.call(data, "battle_record") &&
+    hasField(data,"battle_record") &&
     data.battle_record !== null &&
     data.battle_record !== undefined &&
     typeof data.battle_record !== "object"
@@ -202,12 +202,9 @@ function validateDisplayName(displayName: string) {
     throw new Error("display_name_too_long");
   }
 
-  if (htmlTagPattern.test(displayName)) {
-    htmlTagPattern.lastIndex = 0;
+  if (HTML_TAG_PATTERN.test(displayName)) {
     throw new Error("display_name_invalid");
   }
-
-  htmlTagPattern.lastIndex = 0;
 }
 
 function validateSubmission(data: SubmitOqInput): {
@@ -315,16 +312,16 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
     throw new Error("oq_not_found");
   }
 
-  const nextOqValue = Object.prototype.hasOwnProperty.call(data, "oq_value")
+  const nextOqValue = hasField(data,"oq_value")
     ? (data.oq_value as number)
     : existingProfile.oq_value;
-  const nextTokensMonthly = Object.prototype.hasOwnProperty.call(data, "tokens_monthly")
+  const nextTokensMonthly = hasField(data,"tokens_monthly")
     ? (data.tokens_monthly as number)
     : existingProfile.tokens_monthly;
-  const nextApiCostMonthly = Object.prototype.hasOwnProperty.call(data, "api_cost_monthly")
+  const nextApiCostMonthly = hasField(data,"api_cost_monthly")
     ? (data.api_cost_monthly as number)
     : existingProfile.api_cost_monthly;
-  const nextBattleRecord = Object.prototype.hasOwnProperty.call(data, "battle_record")
+  const nextBattleRecord = hasField(data,"battle_record")
     ? (data.battle_record ?? null)
     : parseBattleRecord(existingProfile.battle_record);
   const nextLevel = calculateLevel(nextTokensMonthly);
@@ -363,8 +360,8 @@ export function updateSettings(
   userId: number,
   data: UpdateSettingsInput,
 ): OqSettingsSummary {
-  const hasDisplayName = Object.prototype.hasOwnProperty.call(data, "display_name");
-  const hasContactable = Object.prototype.hasOwnProperty.call(data, "contactable");
+  const hasDisplayName = hasField(data,"display_name");
+  const hasContactable = hasField(data,"contactable");
 
   if (!hasDisplayName && !hasContactable) {
     throw new Error("no_fields");

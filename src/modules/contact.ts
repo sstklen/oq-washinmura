@@ -1,7 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { sendEmail } from "./email";
-
-const HTML_TAG_PATTERN = /<[^>]*>/g;
+import { HTML_TAG_PATTERN } from "../constants";
 const MAX_MESSAGE_LENGTH = 2_000;
 const CONTACT_RATE_LIMIT = 3;
 
@@ -49,7 +48,7 @@ function getUserEmail(db: Database, userId: number): string {
 }
 
 function sanitizeMessage(message: string): string {
-  return message.replace(HTML_TAG_PATTERN, "").trim();
+  return message.replace(new RegExp(HTML_TAG_PATTERN.source, "g"), "").trim();
 }
 
 function getRecentContactCount(db: Database, fromUserId: number, toOqId: number): number {

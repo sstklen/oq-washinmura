@@ -83,9 +83,20 @@ async function loadSesModule(): Promise<SesModule> {
   return (await import(moduleName)) as SesModule;
 }
 
+// SES client singleton（避免每次 email 重建 client）
+let cachedSesClient: InstanceType<SesModule["SESClient"]> | null = null;
+
+async function getSesClient() {
+  if (!cachedSesClient) {
+    const { SESClient } = await loadSesModule();
+    cachedSesClient = new SESClient(getSesConfig());
+  }
+  return cachedSesClient;
+}
+
 async function sendWithSes(to: string, subject: string, body: string): Promise<void> {
-  const { SESClient, SendEmailCommand } = await loadSesModule();
-  const client = new SESClient(getSesConfig());
+  const { SendEmailCommand } = await loadSesModule();
+  const client = await getSesClient();
   const commandInput = createSesInput(to, subject, body);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {

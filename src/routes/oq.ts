@@ -24,14 +24,7 @@ const badRequestErrors = new Set([
   "no_fields",
 ]);
 
-const LEVEL_TITLES: Record<number, string> = {
-  1: "實習生 Intern",
-  2: "獨立開發者 Solo Dev",
-  3: "資深工程師 Senior Engineer",
-  4: "一人公司 One-Person Co.",
-  5: "一人科技公司 Solo Tech Co.",
-  6: "矽谷新創規格 SV Startup Tier",
-};
+import { LEVEL_TITLES } from "../constants";
 
 export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number } }> {
   const app = new Hono<{ Variables: { userId: number } }>();
