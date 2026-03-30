@@ -112,9 +112,66 @@
 
 最後用瀏覽器打開讓我截圖。
 
+### Step 8：五階 OQ 指紋分析
+在產出 HTML 報告的同時，額外計算五階指紋數據（不顯示在報告上，只用於提交）：
+
+**L1 量** — 月 token 總量、日均、等級、API 等值費用（Step 2 已有）
+**L2 效** — 快取命中率（cache_read / 總 token）、指令佔比（input / 總 token）
+**L3 廣** — 同時專案數（~/.claude/projects/ 資料夾數）、工具種類數、是否有 ~/.gemini/（多模型）、工具呼叫總次數、主要工作時段（早/午/晚/深夜）
+**L4 深** — 連續使用天數、活躍天數/30、session 數
+**L5 智** — 工作風格（Agent 佔比判定：指揮型/混合型/手做型/平衡型/閱讀型）、系統化操作率（Edit 前有 Read/Grep 的比例）
+
+把五階數據存成 JSON 變數備用（Step 9 提交用）。
+
+### Step 9：提交到 OQ 排行榜
+報告產出完畢後，顯示以下訊息：
+
+```
+📊 你的 OQ 報告已產出！
+
+想提交到 OQ 排行榜嗎？
+• 讓找人方看到你的 AI 能力
+• OQ 值越高越容易被聯絡
+• 未來會有公司/團隊來找 OQ 高手合作
+• 你的 AI 操控力 = 你的市場價值
+
+要提交嗎？（說「好」就開始）
+```
+
+用戶說「好」後，執行以下流程：
+
+**9a. 檢查本機是否已有 token**
+- 讀 `~/.oq-token`
+- 有 → 跳到 9d（自動更新）
+- 沒有 → 進入 9b（首次註冊）
+
+**9b. Email 登入**
+- 問用戶：「輸入你的 email（用來驗證身份，不會公開）：」
+- 用戶輸入 email
+- `curl -s -X POST https://oq.washinmura.jp/api/auth/send-code -H "Content-Type: application/json" -d '{"email":"用戶輸入的email"}'`
+- 問用戶：「驗證碼已寄到你的信箱，請輸入 6 位數字：」
+- 用戶輸入驗證碼
+- `curl -s -X POST https://oq.washinmura.jp/api/auth/verify -H "Content-Type: application/json" -d '{"email":"...","code":"..."}'`
+- 取得 session token
+
+**9c. 設定公開身份 + 提交**
+- 問用戶：「排行榜上要顯示什麼名字？（本名、暱稱、江湖名都行）：」
+- 問用戶：「要讓找人方能聯絡你嗎？（開啟 = 公司/團隊找得到你，關閉 = 只上榜不被打擾）」
+- 設定顯示名 + 可被聯絡：
+  `curl -s -X PUT https://oq.washinmura.jp/api/oq/settings -H "Authorization: Bearer {token}" -H "Content-Type: application/json" -d '{"display_name":"...","contactable":true}'`
+- 提交 OQ 數據（含五階指紋）：
+  `curl -s -X POST https://oq.washinmura.jp/api/oq/submit -H "Authorization: Bearer {token}" -H "Content-Type: application/json" -d '{"oq_value":...,"tokens_monthly":...,"api_cost_monthly":...,"battle_record":{...},"fingerprint":{...}}'`
+- 取得 oq_token，存到 `~/.oq-token`
+- 顯示：「✅ 提交成功！你的 OQ: $X | Lv.Y | 排行榜: https://oq.washinmura.jp」
+
+**9d. 自動更新（有 oq_token 時）**
+- 讀 `~/.oq-token`
+- `curl -s -X PUT https://oq.washinmura.jp/api/oq/update -H "Content-Type: application/json" -d '{"oq_token":"...","oq_value":...,"tokens_monthly":...,"api_cost_monthly":...,"battle_record":{...},"fingerprint":{...}}'`
+- 顯示：「✅ 已更新！你的 OQ: $X | Lv.Y」
+
 ### 附錄：數據來源說明
 此腳本僅讀取本機 ~/.claude/ 目錄下的 token 用量統計（API 計費欄位），
-不會讀取對話內容，不會傳送任何資料到外部。
+不會讀取對話內容。提交到 OQ 排行榜的資料僅包含統計數字（token 量、工具次數、時間戳分布），不含任何對話文字。
 所有定價來自 Anthropic 官方文件（platform.claude.com/docs/en/docs/about-claude/pricing）。
 黃仁勳公式來自 GTC 2026（2026.03, CNBC/Tom's Hardware 報導）。
 ```
