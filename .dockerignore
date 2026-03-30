@@ -1,0 +1,9 @@
+node_modules
+data
+.env
+*.db
+.git
+docs
+*.html
+*.md
+.DS_Store

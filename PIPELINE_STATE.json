@@ -1,0 +1,16 @@
+{
+  "project": "oq-washinmura",
+  "phase": "Phase 2 — 派工",
+  "current_card": "CARD-01",
+  "cards": {
+    "CARD-01": "dispatching",
+    "CARD-02": "todo",
+    "CARD-03": "todo",
+    "CARD-04": "todo",
+    "CARD-05": "todo",
+    "CARD-06": "todo",
+    "CARD-07": "todo",
+    "CARD-08": "todo"
+  },
+  "updated_at": "2026-03-30"
+}
