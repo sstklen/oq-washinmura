@@ -334,13 +334,24 @@
       <input class="sf-input" id="sf-code" type="text" placeholder="6 位數字驗證碼" maxlength="6">
       <button class="sf-btn" onclick="sfVerify()">驗證</button>
     </div>
-    <!-- Step 3: Nickname -->
+    <!-- Step 3: Nickname + 數據授權 -->
     <div class="sf-step" id="sf-step3">
-      <h3>✏️ 排行榜暱稱</h3>
-      <input class="sf-input" id="sf-name" type="text" placeholder="本名、暱稱、江湖名都行">
-      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:14px;color:#a8edea;cursor:pointer">
+      <h3>✏️ 設定 &amp; 授權</h3>
+      <input class="sf-input" id="sf-name" type="text" placeholder="排行榜暱稱（本名、暱稱、江湖名都行）">
+      <div style="font-size:15px;color:rgba(168,237,234,0.6);margin:12px 0 8px">選擇你要分享的數據：</div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
+        <input type="checkbox" id="sf-share-basic" checked disabled style="width:18px;height:18px"> OQ 值 + 等級 + 月 Token（必要）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
+        <input type="checkbox" id="sf-share-battle" checked style="width:18px;height:18px"> 戰績（Bash/Git/Edit/Agent/Web）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;color:#a8edea;cursor:pointer">
+        <input type="checkbox" id="sf-share-finger" checked style="width:18px;height:18px"> AI 能力指紋（快取率/連續天數/工作風格）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:15px;color:#a8edea;cursor:pointer">
         <input type="checkbox" id="sf-contact" checked style="width:18px;height:18px"> 讓找人方能聯絡我
       </label>
+      <div style="font-size:13px;color:rgba(168,237,234,0.35);margin-bottom:12px">🔒 只上傳統計數字，不含任何對話內容。你隨時可以在排行榜取消。</div>
       <button class="sf-btn" onclick="sfSubmit()">提交到排行榜</button>
     </div>
     <!-- Step 4: Done -->
@@ -433,26 +444,18 @@ async function sfSubmit() {
       method: 'PUT', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
       body: JSON.stringify({display_name: name, contactable})
     });
-    // 從頁面抓 OQ 數據（模板裡的數字）
-    const heroNum = document.querySelector('.hero-num');
-    const oqText = heroNum ? heroNum.textContent.replace(/[^0-9.]/g, '') : '0';
-    const oqMultiplier = heroNum && heroNum.textContent.includes('億') ? 100000000 : 1;
-    const tokensMonthly = Math.round(parseFloat(oqText) * oqMultiplier);
-    // 從月薪卡抓 OQ 值
-    const salaryNum = document.querySelector('.salary-card .num');
-    const oqVal = salaryNum ? parseInt(salaryNum.textContent.replace(/[^0-9]/g, '')) * 1000 : 0;
+    const oqData = getOqDataFromPage();
 
     const res = await fetch(API + '/oq/submit', {
       method: 'POST', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
-      body: JSON.stringify({oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2})
+      body: JSON.stringify(oqData)
     });
     if (!res.ok) {
       const e = await res.json();
       if (e.error === 'already_submitted') {
-        // 已提交過，改用 update
         await fetch(API + '/oq/update', {
           method: 'PUT', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
-          body: JSON.stringify({oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2})
+          body: JSON.stringify(oqData)
         });
       } else {
         return sfMsg(e.error || '提交失敗', true);
@@ -467,14 +470,59 @@ async function sfSubmit() {
   } catch(e) { sfMsg('網路錯誤', true); }
 }
 
+function parseNum(el) {
+  if (!el) return 0;
+  return parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
+}
+
 function getOqDataFromPage() {
+  // 基本數據（必傳）
   const heroNum = document.querySelector('.hero-num');
   const oqText = heroNum ? heroNum.textContent.replace(/[^0-9.]/g, '') : '0';
   const oqMultiplier = heroNum && heroNum.textContent.includes('億') ? 100000000 : 1;
   const tokensMonthly = Math.round(parseFloat(oqText) * oqMultiplier);
   const salaryNum = document.querySelector('.salary-card .num');
   const oqVal = salaryNum ? parseInt(salaryNum.textContent.replace(/[^0-9]/g, '')) * 1000 : 0;
-  return { oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2 };
+
+  const data = { oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2 };
+
+  // 戰績（用戶打勾才傳）
+  if (document.getElementById('sf-share-battle')?.checked) {
+    const cells = document.querySelectorAll('.battle-cell .bc-num');
+    data.battle_record = {
+      bash: parseNum(cells[0]),
+      commits: parseNum(cells[1]),
+      edits: parseNum(cells[2]),
+      agents: parseNum(cells[3]),
+      web: parseNum(cells[4]),
+      total: parseNum(cells[5])
+    };
+  }
+
+  // 指紋（用戶打勾才傳）
+  if (document.getElementById('sf-share-finger')?.checked) {
+    const bars = document.querySelectorAll('.stat-bar');
+    const statVals = document.querySelectorAll('.stat-val');
+    const streak = document.querySelector('.fire + .days');
+    data.fingerprint = {
+      cache_hit_rate: parseNum(statVals[1]),
+      input_ratio: 0,
+      project_count: 0,
+      tool_diversity: 0,
+      multi_model: document.body.innerHTML.includes('多模型') || document.body.innerHTML.includes('Multi'),
+      tool_calls_total: parseNum(cells?.[5]),
+      primary_period: '',
+      streak_days: streak ? parseNum(streak) : 0,
+      active_days: 0,
+      session_count: 0,
+      work_style: '',
+      systematic_rate: 0,
+      agent_ratio: 0,
+      oq_iq: 0
+    };
+  }
+
+  return data;
 }
 
 async function sfAutoUpdate() {
