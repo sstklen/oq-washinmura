@@ -20,6 +20,11 @@ function resolveOrigin(origin: string): string | null {
     return origin;
   }
 
+  // file:// 開的本機 HTML 報告，origin 是 "null"（字串）
+  if (origin === "null") {
+    return "*";
+  }
+
   if (!isProduction() && localhostOriginPattern.test(origin)) {
     return origin;
   }
