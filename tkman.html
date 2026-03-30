@@ -314,14 +314,25 @@
 
 <div class="submit-float">
   <div class="submit-popup" id="submitPopup">
+    <!-- Step S: 先分享 -->
+    <div class="sf-step active" id="sf-stepS">
+      <h3>📊 你的 OQ 報告出來了！</h3>
+      <p style="font-size:17px;color:#a8edea;margin-bottom:16px;line-height:1.7">先截圖分享，讓朋友看看你的 AI 能力：</p>
+      <button class="sf-btn" onclick="shareToX()" style="background:#000;color:#fff;margin-bottom:8px">𝕏 分享到 X / Twitter</button>
+      <button class="sf-btn" onclick="shareToLinkedIn()" style="background:#0A66C2;color:#fff;margin-bottom:8px">in 分享到 LinkedIn</button>
+      <button class="sf-btn" onclick="copyChallenge()" style="background:transparent;border:1px solid rgba(168,237,234,0.3);color:#a8edea;margin-bottom:16px">📋 複製挑戰文字</button>
+      <div style="border-top:1px solid rgba(168,237,234,0.1);padding-top:16px;margin-top:4px">
+        <p style="font-size:16px;color:rgba(168,237,234,0.6);margin-bottom:12px">想讓企業和團隊主動找到你？</p>
+        <button class="sf-btn" onclick="sfShow(1)">🏆 上傳到 OQ 排行榜 →</button>
+      </div>
+    </div>
     <!-- Step 1: Email -->
-    <div class="sf-step active" id="sf-step1">
+    <div class="sf-step" id="sf-step1">
       <h3>🏆 上傳到 OQ 排行榜</h3>
-      <div style="font-size:17px;color:#a8edea;margin-bottom:14px;line-height:1.8;background:rgba(168,237,234,0.06);border-radius:10px;padding:14px">
+      <div style="font-size:16px;color:#a8edea;margin-bottom:14px;line-height:1.8;background:rgba(168,237,234,0.06);border-radius:10px;padding:14px">
         💎 讓你的 AI 能力被看見，而不只是藏在終端機裡<br>
         🌏 全球企業正在尋找能駕馭 AI 的人才<br>
-        🤝 顧問、技術合夥、專案合作 — 機會會主動找上你<br>
-        <span style="color:rgba(168,237,234,0.5);font-size:15px">OQ 排行榜 — 用數據說話的 AI 人才舞台</span>
+        🤝 顧問、技術合夥、專案合作 — 機會會主動找上你
       </div>
       <input class="sf-input" id="sf-email" type="email" placeholder="輸入你的 email（驗證身份用）">
       <button class="sf-btn" onclick="sfSendCode()">發送驗證碼</button>
@@ -373,6 +384,10 @@
         <input type="checkbox" id="sf-auto-yes" checked style="width:22px;height:22px"> 更新我的 OQ 排行榜數據
       </label>
       <button class="sf-btn" onclick="sfAutoUpdate()">確認更新</button>
+      <div style="border-top:1px solid rgba(168,237,234,0.1);padding-top:12px;margin-top:12px;display:flex;gap:8px">
+        <button class="sf-btn" onclick="shareToX()" style="background:#000;color:#fff;font-size:14px;padding:8px 12px;min-height:auto">𝕏 分享</button>
+        <button class="sf-btn" onclick="copyChallenge()" style="background:transparent;border:1px solid rgba(168,237,234,0.2);color:#a8edea;font-size:14px;padding:8px 12px;min-height:auto">📋 挑戰朋友</button>
+      </div>
       <button class="sf-btn" onclick="document.getElementById('submitPopup').classList.remove('show')" style="background:transparent;border:1px solid rgba(168,237,234,0.2);color:#a8edea;margin-top:8px">不用了</button>
     </div>
     <div class="sf-msg" id="sf-msg"></div>
@@ -386,14 +401,14 @@ const API = 'https://oq.washinmura.jp/api';
 let sfToken = '';
 const savedOqToken = localStorage.getItem('oq_token');
 
-// 每次開報告都自動彈出
+// 每次開報告都自動彈出 — 先分享
 setTimeout(() => {
   document.getElementById('submitPopup').classList.add('show');
   if (savedOqToken) {
-    sfShow(0); // 有 token → 直接問要不要更新
+    sfShow(0); // 有 token → 問要不要更新
     document.querySelector('.submit-float-btn').textContent = '📊 更新排行榜';
   } else {
-    sfShow(1); // 沒 token → 走首次上傳流程
+    sfShow('S'); // 沒 token → 先分享再上傳
   }
 }, 1500);
 
