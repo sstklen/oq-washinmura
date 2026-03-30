@@ -235,7 +235,7 @@
         <div class="level-item"><span class="level-label">Lv.5 一人科技公司<span class="eq">= 10 人工程部</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:30%"></div></div><span class="level-value">~10 億</span></div>
         <div class="level-item hl"><span class="level-label">Lv.6 矽谷新創規格<span class="eq">= 20+ 人工程部</span></span><div class="level-bar-wrap"><div class="level-bar you" style="width:100%"></div></div><span class="level-value">16 億/天</span></div>
       </div>
-      <div class="footer">Data: Claude Code JSONL · Gemini CLI · Relay logs<br>僅讀取本機 token 統計，不讀取對話內容</div>
+      <div class="footer">Data: Claude Code JSONL · Gemini CLI · Relay logs<br>僅讀取本機 token 統計，不讀取對話內容<br><strong style="color:rgba(168,237,234,0.5)">oq.washinmura.jp</strong> — 測測你的 AI 競爭力</div>
     </div>
 
     <!-- Col 2: 戰績 -->
@@ -345,12 +345,25 @@
       <div style="font-size:14px;color:rgba(168,237,234,0.35);margin-bottom:14px">🔒 OQ 數據 = token 用量、工具次數等統計數字。<br>不含你的對話內容、程式碼、檔案、專案名稱。Email 不公開。</div>
       <button class="sf-btn" onclick="sfSubmit()">提交到排行榜</button>
     </div>
-    <!-- Step 4: Done -->
+    <!-- Step 4: Done + 分享 -->
     <div class="sf-step" id="sf-step4">
       <h3>✅ 提交成功！</h3>
-      <p>你已登上 OQ 排行榜</p>
-      <p style="font-size:14px;color:rgba(168,237,234,0.5);margin-top:8px">下次產出報告時會自動問你要不要更新</p>
-      <p style="margin-top:12px"><a href="https://oq.washinmura.jp" target="_blank" style="color:#a8edea;text-decoration:underline;font-size:18px">查看排行榜 →</a></p>
+      <p style="font-size:16px;margin-bottom:16px">你已登上 OQ 排行榜 🎉</p>
+
+      <div style="font-size:15px;color:#a8edea;margin-bottom:12px">挑戰你的朋友 — 看誰的 AI 能力更強：</div>
+
+      <button class="sf-btn" onclick="shareToX()" style="background:#000;color:#fff;margin-bottom:8px">
+        𝕏 分享到 X / Twitter
+      </button>
+      <button class="sf-btn" onclick="shareToLinkedIn()" style="background:#0A66C2;color:#fff;margin-bottom:8px">
+        in 分享到 LinkedIn
+      </button>
+      <button class="sf-btn" onclick="copyChallenge()" style="background:transparent;border:1px solid rgba(168,237,234,0.3);color:#a8edea;margin-bottom:8px">
+        📋 複製挑戰連結
+      </button>
+
+      <p style="font-size:13px;color:rgba(168,237,234,0.4);margin-top:8px">下次產出報告時會自動問你要不要更新</p>
+      <p style="margin-top:8px"><a href="https://oq.washinmura.jp" target="_blank" style="color:#a8edea;text-decoration:underline;font-size:16px">查看排行榜 →</a></p>
     </div>
     <!-- Step 0: Auto-update (有 oq_token 時顯示) -->
     <div class="sf-step" id="sf-step0">
@@ -527,6 +540,32 @@ function getOqDataFromPage() {
   }
 
   return data;
+}
+
+function getOqSummary() {
+  const heroNum = document.querySelector('.hero-num');
+  const tokens = heroNum ? heroNum.textContent.trim() : '';
+  const salaryNum = document.querySelector('.salary-card .num');
+  const oq = salaryNum ? salaryNum.textContent.trim() : '';
+  const lvEl = document.querySelector('.level-badge .lv');
+  const lv = lvEl ? lvEl.textContent.trim() : '';
+  return { tokens, oq, lv };
+}
+
+function shareToX() {
+  const { tokens, oq, lv } = getOqSummary();
+  const text = `我的 OQ：${oq}（${lv}）\n月 Token：${tokens}\n\n你的 AI 能力值多少？測測看 👉 oq.washinmura.jp\n\n#OQ #AI競爭力 #ClaudeCode`;
+  window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+}
+
+function shareToLinkedIn() {
+  window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent('https://oq.washinmura.jp'), '_blank');
+}
+
+function copyChallenge() {
+  const { tokens, oq, lv } = getOqSummary();
+  const text = `我的 OQ：${oq}（${lv}），月 Token：${tokens}。你的 AI 能力值多少？👉 oq.washinmura.jp`;
+  navigator.clipboard.writeText(text).then(() => sfMsg('已複製挑戰文字！貼給朋友', false));
 }
 
 async function sfAutoUpdate() {
