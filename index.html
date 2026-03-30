@@ -2,271 +2,361 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>AI Usage Report — 7 Days</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OQ — AI 時代的 Token 操控力 = 你的薪水</title>
+<meta name="description" content="用 Claude Code 算出你的 OQ 值。黃仁勳公式：OQ = 月 Token 費 × 2。你的 AI 操控力值多少月薪？">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
     color: #d4d0f0;
     font-family: -apple-system, "Helvetica Neue", "Noto Sans TC", sans-serif;
-    width: 1280px; height: 720px;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 460px 1fr;
+    min-height: 100vh;
+    line-height: 1.6;
   }
+  a { color: #a8edea; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .container { max-width: 900px; margin: 0 auto; padding: 60px 24px 80px; }
 
-  .left {
-    padding: 36px 36px 28px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    border-right: 1px solid rgba(168,237,234,0.1);
-  }
-  .top-line { font-size: 13px; color: rgba(168,237,234,0.5); letter-spacing: 4px; text-transform: uppercase; font-weight: 600; }
-  .hero-row { display: flex; align-items: baseline; gap: 14px; margin-top: 10px; }
-  .hero-num {
-    font-size: 86px; font-weight: 900; line-height: 0.9;
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #a8edea 100%);
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 60px; }
+  .hero h1 {
+    font-size: 48px; font-weight: 900; line-height: 1.2;
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
-  .hero-sub { font-size: 22px; color: #a8edea; font-weight: 500; line-height: 1.3; letter-spacing: 1px; white-space: nowrap; }
-  .hero-period { font-size: 13px; color: rgba(168,237,234,0.4); margin-top: 6px; }
-
-  .level-badge {
-    display: flex; align-items: center; gap: 14px;
-    background: linear-gradient(135deg, rgba(254,214,227,0.12), rgba(168,237,234,0.08));
-    border: 1px solid rgba(254,214,227,0.2);
-    border-radius: 14px; padding: 14px 20px; margin-top: 12px;
+  .hero .subtitle { font-size: 20px; color: rgba(168,237,234,0.6); margin-top: 12px; font-weight: 500; }
+  .hero .formula {
+    display: inline-block; margin-top: 20px;
+    background: rgba(254,214,227,0.08); border: 1px solid rgba(254,214,227,0.2);
+    border-radius: 12px; padding: 14px 28px;
+    font-size: 22px; font-weight: 700; color: #fff;
   }
-  .level-badge .lv { font-size: 32px; font-weight: 900; color: #fed6e3; }
-  .level-badge .name { font-size: 20px; color: #a8edea; font-weight: 600; line-height: 1.3; }
+  .hero .formula span { color: #fed6e3; }
+  .hero .source { font-size: 14px; color: rgba(168,237,234,0.4); margin-top: 12px; }
 
-  .saving {
-    background: rgba(168,237,234,0.06); border: 1px solid rgba(168,237,234,0.12);
-    border-radius: 14px; padding: 18px 24px; margin-top: 14px;
-  }
-  .saving .row { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; }
-  .saving .lbl { font-size: 11px; color: rgba(168,237,234,0.55); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
-  .saving .val { font-size: 32px; font-weight: 900; color: #fff; line-height: 1; margin-top: 2px; }
-  .saving .val.g { background: linear-gradient(90deg, #a8edea, #7ecf8b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .saving .divider { font-size: 20px; color: rgba(168,237,234,0.25); }
-  .saving .note { font-size: 14px; color: #fed6e3; font-weight: 600; text-align: right; margin-left: auto; }
-
-  .achievements { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .ach {
-    background: rgba(168,237,234,0.06); border: 1px solid rgba(168,237,234,0.12);
-    border-radius: 16px; padding: 5px 12px; font-size: 12px; color: #a8edea; font-weight: 500;
-  }
-
-  /* 能力值 */
-  .power-stats { margin-top: 14px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
-  .power-title { font-size: 12px; color: rgba(168,237,234,0.45); letter-spacing: 2px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
-  .stat-row { display: flex; align-items: center; padding: 5px 0; }
-  .stat-label { width: 75px; font-size: 13px; color: rgba(168,237,234,0.55); flex-shrink: 0; }
-  .stat-bar-wrap { flex: 1; height: 5px; background: rgba(168,237,234,0.08); border-radius: 3px; overflow: hidden; margin: 0 8px; }
-  .stat-bar { height: 100%; border-radius: 3px; }
-  .stat-bar.s1 { background: linear-gradient(90deg, #a8edea, #fed6e3); }
-  .stat-bar.s2 { background: linear-gradient(90deg, #7ecf8b, #a8edea); }
-  .stat-bar.s3 { background: linear-gradient(90deg, #fed6e3, #c4a0f5); }
-  .stat-val { width: 30px; font-size: 14px; font-weight: 800; color: #fed6e3; text-align: right; }
-
-  .streak {
-    display: flex; align-items: center; gap: 8px; margin-top: 10px;
-    font-size: 14px; color: rgba(168,237,234,0.55);
-  }
-  .streak .fire { font-size: 20px; }
-  .streak .days { font-size: 22px; font-weight: 900; color: #fed6e3; }
-
-  .quote {
-    background: rgba(254,214,227,0.05);
-    border-left: 3px solid #fed6e3;
-    border-radius: 0 14px 14px 0;
-    padding: 14px 16px; margin-top: 12px;
-    font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.5; font-style: italic;
-  }
-  .quote strong { color: #fff; font-style: normal; }
-
-  .right {
-    padding: 32px 36px 24px;
-    display: grid; grid-template-rows: auto 1fr; gap: 18px;
-  }
+  .section { margin-bottom: 48px; }
   .section-title {
-    font-size: 10px; font-weight: 700; color: rgba(168,237,234,0.4);
-    text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px;
+    font-size: 13px; font-weight: 700; color: rgba(168,237,234,0.45);
+    text-transform: uppercase; letter-spacing: 3px; margin-bottom: 16px;
   }
-  .cost-table { width: 100%; border-collapse: collapse; }
-  .cost-table th { font-size: 10px; color: rgba(168,237,234,0.25); text-align: left; padding: 3px 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-  .cost-table th:last-child { text-align: right; }
-  .cost-table td { padding: 5px 8px; font-size: 13px; border-top: 1px solid rgba(168,237,234,0.06); color: #c8c4e8; }
-  .cost-table td:last-child { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; }
-  .cost-table .dim { color: rgba(168,237,234,0.3); font-size: 11px; }
-  .cost-table .explain { color: rgba(168,237,234,0.3); font-size: 11px; }
-  .cost-table .cat { color: #a8edea; font-size: 11px; font-weight: 600; padding: 5px 8px 1px; border: none; }
-  .cost-table .total td {
-    border-top: 2px solid rgba(168,237,234,0.15); font-weight: 900; font-size: 16px; padding-top: 8px;
-    background: linear-gradient(90deg, #a8edea, #fed6e3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .step {
+    background: rgba(168,237,234,0.04); border: 1px solid rgba(168,237,234,0.1);
+    border-radius: 16px; padding: 24px; text-align: center;
   }
-  .cost-table .total td:first-child { -webkit-text-fill-color: #a8edea; }
+  .step .num { font-size: 36px; font-weight: 900; color: #fed6e3; }
+  .step .label { font-size: 16px; color: #fff; font-weight: 600; margin-top: 8px; }
+  .step .desc { font-size: 14px; color: rgba(168,237,234,0.5); margin-top: 6px; }
 
-  /* 下方三欄 — 等級寬、戰績緊湊、比喻+月薪 */
-  .data-grid { display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 18px; align-self: stretch; }
-  .data-col { display: flex; flex-direction: column; justify-content: space-between; }
-
-  /* 等級條 */
-  .level-wrap { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
-  .level-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(168,237,234,0.06); }
-  .level-item:last-child { border-bottom: none; }
-  .level-label { width: 140px; font-size: 15px; color: rgba(168,237,234,0.5); flex-shrink: 0; line-height: 1.3; }
-  .level-label .eq { font-size: 12px; color: rgba(168,237,234,0.35); display: block; }
-  .level-bar-wrap { flex: 1; height: 7px; background: rgba(168,237,234,0.08); border-radius: 4px; overflow: hidden; margin: 0 8px; }
-  .level-bar { height: 100%; border-radius: 4px; background: rgba(168,237,234,0.15); }
-  .level-bar.you { background: linear-gradient(90deg, #a8edea, #fed6e3); }
-  .level-value { font-size: 14px; width: 65px; text-align: right; flex-shrink: 0; color: rgba(168,237,234,0.55); font-variant-numeric: tabular-nums; }
-  .level-item.hl { background: rgba(168,237,234,0.08); border-radius: 10px; padding: 9px 12px; margin: 2px -12px; }
-  .level-item.hl .level-label { color: #a8edea; font-weight: 700; font-size: 16px; }
-  .level-item.hl .level-value { color: #fed6e3; font-weight: 800; font-size: 15px; }
-
-  /* 戰績格 — 緊湊 */
-  .battle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: stretch; height: 100%; }
-  .battle-cell {
-    background: rgba(168,237,234,0.04); border: 1px solid rgba(168,237,234,0.08);
-    border-radius: 12px; padding: 12px 8px; text-align: center;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
+  /* Level Table */
+  .level-table { width: 100%; border-collapse: collapse; }
+  .level-table th {
+    font-size: 12px; color: rgba(168,237,234,0.35); text-align: left;
+    padding: 8px 12px; font-weight: 600; text-transform: uppercase;
+    border-bottom: 1px solid rgba(168,237,234,0.1);
   }
-  .battle-cell .bc-icon { font-size: 24px; }
-  .battle-cell .bc-num { font-size: 26px; font-weight: 900; color: #fff; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .battle-cell .bc-label { font-size: 11px; color: rgba(168,237,234,0.5); margin-top: 4px; }
+  .level-table td { padding: 10px 12px; font-size: 15px; border-bottom: 1px solid rgba(168,237,234,0.06); }
+  .level-table td:first-child { font-weight: 700; color: #a8edea; }
+  .level-table td:last-child { color: rgba(168,237,234,0.5); }
 
-  /* 月薪卡 */
-  .salary-card {
-    background: linear-gradient(135deg, rgba(254,214,227,0.12), rgba(168,237,234,0.06));
-    border: 1px solid rgba(254,214,227,0.3);
-    border-radius: 16px; padding: 20px 12px;
-    text-align: center;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
+  /* Prompt */
+  .prompt-box {
+    background: rgba(168,237,234,0.04); border: 1px solid rgba(168,237,234,0.12);
+    border-radius: 16px; padding: 24px; position: relative;
   }
-  .salary-card .label { font-size: 11px; color: rgba(254,214,227,0.5); letter-spacing: 3px; text-transform: uppercase; font-weight: 600; }
-  .salary-card .num {
-    font-size: 52px; font-weight: 900; line-height: 1; margin-top: 8px; letter-spacing: 2px;
-    background: linear-gradient(90deg, #fed6e3, #a8edea);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  .prompt-box pre {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 13px; color: rgba(168,237,234,0.7); line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all;
+    max-height: 300px; overflow-y: auto;
   }
-  .salary-card .detail { font-size: 10px; color: rgba(168,237,234,0.5); margin-top: 8px; line-height: 1.4; white-space: nowrap; }
+  .copy-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(254,214,227,0.15); border: 1px solid rgba(254,214,227,0.3);
+    color: #fed6e3; border-radius: 8px; padding: 8px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(254,214,227,0.25); }
 
-  .footer { font-size: 10px; color: rgba(168,237,234,0.3); margin-top: 4px; }
+  /* Form */
+  .form-card {
+    background: linear-gradient(135deg, rgba(254,214,227,0.08), rgba(168,237,234,0.04));
+    border: 1px solid rgba(254,214,227,0.2);
+    border-radius: 20px; padding: 36px;
+  }
+  .form-card h2 { font-size: 24px; color: #fff; font-weight: 700; margin-bottom: 8px; }
+  .form-card .form-desc { font-size: 15px; color: rgba(168,237,234,0.5); margin-bottom: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group label { font-size: 13px; color: rgba(168,237,234,0.5); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .form-group input {
+    background: rgba(168,237,234,0.06); border: 1px solid rgba(168,237,234,0.15);
+    border-radius: 10px; padding: 12px 16px; font-size: 16px; color: #fff;
+    font-family: inherit; outline: none; transition: border 0.2s;
+  }
+  .form-group input:focus { border-color: rgba(254,214,227,0.4); }
+  .form-group input::placeholder { color: rgba(168,237,234,0.25); }
+  .submit-btn {
+    grid-column: 1 / -1; margin-top: 8px;
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
+    border: none; border-radius: 12px; padding: 14px; font-size: 16px;
+    font-weight: 700; color: #0f0c29; cursor: pointer; transition: opacity 0.2s;
+  }
+  .submit-btn:hover { opacity: 0.9; }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-note { grid-column: 1/-1; font-size: 13px; color: rgba(168,237,234,0.35); text-align: center; margin-top: 4px; }
+  .mode-toggle {
+    grid-column: 1/-1; display: flex; gap: 12px; justify-content: center; margin-bottom: 8px;
+  }
+  .mode-btn {
+    background: rgba(168,237,234,0.06); border: 1px solid rgba(168,237,234,0.15);
+    border-radius: 8px; padding: 8px 20px; font-size: 14px; color: rgba(168,237,234,0.5);
+    cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+  }
+  .mode-btn.active { background: rgba(254,214,227,0.15); border-color: rgba(254,214,227,0.3); color: #fed6e3; }
+
+  /* Leaderboard */
+  .lb-table { width: 100%; border-collapse: collapse; }
+  .lb-table th {
+    font-size: 12px; color: rgba(168,237,234,0.35); text-align: left;
+    padding: 8px 12px; font-weight: 600; text-transform: uppercase;
+    border-bottom: 1px solid rgba(168,237,234,0.1);
+  }
+  .lb-table td { padding: 12px; font-size: 15px; border-bottom: 1px solid rgba(168,237,234,0.06); }
+  .lb-table .rank { font-size: 20px; font-weight: 900; width: 40px; }
+  .lb-table .rank.gold { color: #ffd700; }
+  .lb-table .rank.silver { color: #c0c0c0; }
+  .lb-table .rank.bronze { color: #cd7f32; }
+  .lb-table .oq-val { font-weight: 800; color: #fed6e3; font-size: 18px; }
+  .lb-table .lv-badge {
+    display: inline-block; background: rgba(168,237,234,0.1);
+    border-radius: 6px; padding: 2px 8px; font-size: 12px; color: #a8edea; font-weight: 600;
+  }
+  .lb-empty { text-align: center; padding: 40px; color: rgba(168,237,234,0.35); font-size: 16px; }
+
+  .footer { text-align: center; margin-top: 60px; font-size: 13px; color: rgba(168,237,234,0.3); line-height: 1.8; }
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: rgba(126,207,139,0.9); color: #0f0c29; padding: 12px 24px;
+    border-radius: 10px; font-weight: 600; font-size: 14px;
+    display: none; z-index: 999;
+  }
+
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 32px; }
+    .steps { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<div class="left">
-  <div>
-    <div class="top-line">AI 時代的 OQ 值 — Token 操控力 = 你的薪水</div>
-    <div class="hero-row">
-      <div class="hero-num">314億</div>
-      <div class="hero-sub">Tokens / 月</div>
-    </div>
-    <div class="level-badge">
-      <span class="lv">Lv.6</span>
-      <span class="name">矽谷新創規格 = 20+ 人工程部</span>
-    </div>
-    <div class="hero-period">2026.02.28 — 03.30 · tkman · oq.washinmura.jp</div>
+<div class="container">
 
-    <div class="saving">
-      <div class="row">
-        <div><div class="lbl">月 API 等值</div><div class="val">US$40,279</div></div>
-        <div class="divider">→</div>
-        <div><div class="lbl">5× Claude Max / 月</div><div class="val g">US$1,000</div></div>
+  <!-- Hero -->
+  <div class="hero">
+    <h1>OQ — AI 時代的薪水</h1>
+    <div class="subtitle">你的 Token 操控力，決定你在 AI 時代值多少</div>
+    <div class="formula">OQ = 月 Token 費 × <span>2</span></div>
+    <div class="source">黃仁勳（GTC 2026）：「年薪 $500K 的工程師，應配 $250K Token 預算。不用我會非常火大。」</div>
+  </div>
+
+  <!-- Steps -->
+  <div class="section">
+    <div class="section-title">三步驟算出你的 OQ</div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div class="label">複製提示語</div>
+        <div class="desc">下方有完整提示語，一鍵複製</div>
       </div>
-      <div class="note">月 API 費 = 40 個月訂閱費 · 省下 97.5%</div>
-    </div>
-
-    <div class="achievements">
-      <span class="ach">🏆 黃仁勳認證</span>
-      <span class="ach">⚡ 快取大師</span>
-      <span class="ach">🤖 多模型指揮官</span>
-      <span class="ach">📚 萬卷讀者</span>
-      <span class="ach">💰 套利王</span>
-      <span class="ach">🔥 不眠不休</span>
-      <span class="ach">🎯 精準指揮</span>
-    </div>
-  </div>
-
-  <div class="power-stats">
-    <div class="power-title">能力值 Power Stats</div>
-    <div class="stat-row"><span class="stat-label">生產力</span><div class="stat-bar-wrap"><div class="stat-bar s1" style="width:99%"></div></div><span class="stat-val">99</span></div>
-    <div class="stat-row"><span class="stat-label">快取效率</span><div class="stat-bar-wrap"><div class="stat-bar s2" style="width:91%"></div></div><span class="stat-val">91</span></div>
-    <div class="stat-row"><span class="stat-label">多模型</span><div class="stat-bar-wrap"><div class="stat-bar s3" style="width:85%"></div></div><span class="stat-val">85</span></div>
-    <div class="stat-row"><span class="stat-label">指令精準</span><div class="stat-bar-wrap"><div class="stat-bar s1" style="width:99%"></div></div><span class="stat-val">99</span></div>
-    <div class="stat-row"><span class="stat-label">成本控制</span><div class="stat-bar-wrap"><div class="stat-bar s2" style="width:97%"></div></div><span class="stat-val">97</span></div>
-    <div class="streak">
-      <span class="fire">🔥</span>
-      <span class="days">7</span>
-      <span>天連續使用 · 成就 7/7 全解鎖</span>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="label">貼進 Claude Code</div>
+        <div class="desc">AI 掃描本機數據，產出 OQ 報告</div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="label">提交你的 OQ</div>
+        <div class="desc">登上排行榜，被高手看見</div>
+      </div>
     </div>
   </div>
 
-  <div class="quote">
-    <strong>OQ = 月 Token 費 × 2</strong>（黃仁勳 GTC 2026：Token 預算 = 年薪 50%）
-  </div>
-</div>
-
-<div class="right">
-  <div>
-    <div class="section-title">全平台 API 等值成本（官方牌價 USD）</div>
-    <table class="cost-table">
-      <thead><tr><th>項目</th><th>用量</th><th class="dim">單價</th><th>金額</th></tr></thead>
+  <!-- Level -->
+  <div class="section">
+    <div class="section-title">OQ 等級表</div>
+    <table class="level-table">
+      <thead><tr><th>等級</th><th>OQ 值</th><th>稱號</th><th>等於</th></tr></thead>
       <tbody>
-        <tr><td colspan="4" class="cat">Claude Opus 4.6</td></tr>
-        <tr><td>上下文初始化 <span class="explain">載入專案與指令</span></td><td>23.3 億</td><td class="dim">$10/M</td><td>$23,262</td></tr>
-        <tr><td>上下文重載 <span class="explain">快取命中，省 10 倍</span></td><td>289.4 億</td><td class="dim">$0.50/M</td><td>$14,472</td></tr>
-        <tr><td>模型生成 <span class="explain">程式碼與分析產出</span></td><td>1.01 億</td><td class="dim">$25/M</td><td>$2,535</td></tr>
-        <tr><td>用戶指令 <span class="explain">精簡指令，效率高</span></td><td>197 萬</td><td class="dim">$5/M</td><td>$10</td></tr>
-        <tr class="total"><td colspan="3">30 天實際合計</td><td>US$40,279</td></tr>
+        <tr><td>Lv.1</td><td>&lt; US$1K</td><td>實習生</td><td>= 0.5 人</td></tr>
+        <tr><td>Lv.2</td><td>US$1K - 5K</td><td>獨立開發者</td><td>= 1 人</td></tr>
+        <tr><td>Lv.3</td><td>US$5K - 20K</td><td>資深工程師</td><td>= 2-3 人</td></tr>
+        <tr><td>Lv.4</td><td>US$20K - 50K</td><td>一人公司</td><td>= 5 人團隊</td></tr>
+        <tr><td>Lv.5</td><td>US$50K - 200K</td><td>一人科技公司</td><td>= 10 人工程部</td></tr>
+        <tr><td>Lv.6</td><td>&gt; US$200K</td><td>矽谷新創規格</td><td>= 20+ 人工程部</td></tr>
       </tbody>
     </table>
   </div>
 
-  <div class="data-grid">
-    <!-- Col 1: 等級 -->
-    <div class="data-col">
-      <div class="section-title">等級（每日 Token 量）</div>
-      <div class="level-wrap">
-        <div class="level-item"><span class="level-label">Lv.1 實習生<span class="eq">= 0.5 人</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:0.3%"></div></div><span class="level-value">&lt;100 萬</span></div>
-        <div class="level-item"><span class="level-label">Lv.2 獨立開發者<span class="eq">= 1 人</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:0.6%"></div></div><span class="level-value">~1,000 萬</span></div>
-        <div class="level-item"><span class="level-label">Lv.3 資深工程師<span class="eq">= 2-3 人</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:3%"></div></div><span class="level-value">~5,000 萬</span></div>
-        <div class="level-item"><span class="level-label">Lv.4 一人公司<span class="eq">= 5 人團隊</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:12%"></div></div><span class="level-value">~2 億</span></div>
-        <div class="level-item"><span class="level-label">Lv.5 一人科技公司<span class="eq">= 10 人工程部</span></span><div class="level-bar-wrap"><div class="level-bar" style="width:30%"></div></div><span class="level-value">~10 億</span></div>
-        <div class="level-item hl"><span class="level-label">Lv.6 矽谷新創規格<span class="eq">= 20+ 人工程部</span></span><div class="level-bar-wrap"><div class="level-bar you" style="width:100%"></div></div><span class="level-value">16 億/天</span></div>
-      </div>
-      <div class="footer">Data: Claude Code JSONL · Gemini CLI · Relay logs<br>僅讀取本機 token 統計，不讀取對話內容</div>
-    </div>
+  <!-- Prompt -->
+  <div class="section">
+    <div class="section-title">提示語（複製後貼進 Claude Code）</div>
+    <div class="prompt-box">
+      <button class="copy-btn" onclick="copyPrompt()">複製提示語</button>
+      <pre id="prompt-text">幫我產出一份「AI Token 使用報告」，掃描 ~/.claude/projects/*/*.jsonl，
+從 message.usage 提取 input_tokens / output_tokens / cache_creation_input_tokens / cache_read_input_tokens，
+按最近 30 天加總。
 
-    <!-- Col 2: 戰績 -->
-    <div class="data-col">
-      <div class="section-title">30 天戰績 Battle Record</div>
-      <div class="battle-grid" style="height:100%;">
-        <div class="battle-cell"><div class="bc-icon">⚡</div><div class="bc-num">45,645</div><div class="bc-label">Bash 指令</div></div>
-        <div class="battle-cell"><div class="bc-icon">🏗</div><div class="bc-num">1,502</div><div class="bc-label">Git Commits</div></div>
-        <div class="battle-cell"><div class="bc-icon">✏️</div><div class="bc-num">12,172</div><div class="bc-label">檔案編輯/新建</div></div>
-        <div class="battle-cell"><div class="bc-icon">🎖</div><div class="bc-num">2,157</div><div class="bc-label">Agent 派工</div></div>
-        <div class="battle-cell"><div class="bc-icon">🌐</div><div class="bc-num">4,110</div><div class="bc-label">Web 搜尋</div></div>
-        <div class="battle-cell"><div class="bc-icon">🔧</div><div class="bc-num">83,566</div><div class="bc-label">工具呼叫總計</div></div>
-      </div>
-    </div>
+用 Claude Opus 4.6 官方定價算 API 等值成本：
+input $5/M · output $25/M · cache write $10/M · cache read $0.50/M
 
-    <!-- Col 3: 比喻 + 月薪 -->
-    <div class="data-col">
-      <div class="section-title">什麼概念</div>
-      <div class="battle-grid" style="grid-template-columns:1fr 1fr; grid-template-rows: 1fr 1fr auto; height:100%;">
-        <div class="battle-cell"><div class="bc-icon">📚</div><div class="bc-num">313,733</div><div class="bc-label">本書的文字量</div></div>
-        <div class="battle-cell"><div class="bc-icon">⚡</div><div class="bc-num">20×</div><div class="bc-label">典型重度用戶</div></div>
-        <div class="salary-card" style="grid-column:1/-1; margin:0;">
-          <div class="label">OQ 值（黃仁勳公式）</div>
-          <div class="num" style="white-space:nowrap">US$&thinsp;81K</div>
-          <div class="detail">OQ = 月 Token 費 × 2 · 年薪 US$967K · NVIDIA 1.9 倍</div>
+算 OQ 值 = 月 API 費 × 2（黃仁勳 GTC 2026 公式：Token 預算 = 年薪 50%）
+
+同時掃描 tool_use 統計戰績（Bash/Git Commits/Edit/Write/Agent/WebSearch 等）
+
+產出 1280×720 深色 HTML 報告，含：
+- 月 Token 總量 + OQ 值（最大最醒目）
+- 等級（Lv.1 實習生 ~ Lv.6 矽谷新創規格）
+- API 成本明細 + 省下多少
+- 能力值 Power Stats + 成就徽章
+- 30 天戰績 Battle Record
+- 黃仁勳引言
+
+完整提示語：https://github.com/sstklen/oq-washinmura
+提交你的 OQ：https://oq.washinmura.jp</pre>
+    </div>
+    <p style="margin-top:12px; font-size:14px; color:rgba(168,237,234,0.4);">
+      完整版提示語：<a href="https://github.com/sstklen/oq-washinmura" target="_blank">github.com/sstklen/oq-washinmura</a>
+      · 僅讀取本機 token 統計，不讀取對話內容，不傳送資料
+    </p>
+  </div>
+
+  <!-- Submit -->
+  <div class="section">
+    <div class="form-card">
+      <h2>提交你的 OQ</h2>
+      <div class="form-desc">上傳你的 OQ 值，登上排行榜。未來有人要找 AI 高手，我們會媒合。</div>
+      <div class="form-grid">
+        <div class="mode-toggle">
+          <button class="mode-btn active" onclick="setMode('static')">手動填寫</button>
+          <button class="mode-btn" onclick="setMode('api')">API 動態更新</button>
         </div>
+        <div class="form-group">
+          <label>OQ 值（US$）</label>
+          <input type="number" id="oq-value" placeholder="例：81000">
+        </div>
+        <div class="form-group">
+          <label>暱稱</label>
+          <input type="text" id="nickname" placeholder="你想被怎麼稱呼">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="不公開，僅媒合用">
+        </div>
+        <div class="form-note">Email 不會公開，僅在人脈媒合時通知你</div>
+        <div class="form-note" id="api-hint" style="display:none; color:#a8edea;">
+          API 動態更新：curl -X POST https://oq.washinmura.jp/api/submit -H "Content-Type: application/json" -d '{"oq":81000,"nickname":"你的名字","email":"you@mail.com"}'
+        </div>
+        <button class="submit-btn" onclick="submitOQ()">提交 OQ</button>
       </div>
     </div>
   </div>
+
+  <!-- Leaderboard -->
+  <div class="section">
+    <div class="section-title">OQ 排行榜</div>
+    <div id="leaderboard">
+      <div class="lb-empty">等你來當第一名 — 算出你的 OQ 值，提交上來</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <strong>OQ</strong> — Operational Quotient · AI 時代的人才指標<br>
+    你的 Token 操控力 = 你的薪水<br>
+    <a href="https://github.com/sstklen/oq-washinmura">GitHub</a> ·
+    <a href="/tkman">tkman 的 OQ 報告</a> ·
+    oq.washinmura.jp
+  </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
+<script>
+function copyPrompt() {
+  navigator.clipboard.writeText(document.getElementById('prompt-text').textContent)
+    .then(() => showToast('已複製！貼進 Claude Code 就能跑'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('api-hint').style.display = mode === 'api' ? 'block' : 'none';
+}
+
+function getLevel(oq) {
+  if (oq >= 200000) return 'Lv.6 矽谷新創規格';
+  if (oq >= 50000) return 'Lv.5 一人科技公司';
+  if (oq >= 20000) return 'Lv.4 一人公司';
+  if (oq >= 5000) return 'Lv.3 資深工程師';
+  if (oq >= 1000) return 'Lv.2 獨立開發者';
+  return 'Lv.1 實習生';
+}
+
+async function loadLeaderboard() {
+  try {
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.length) return;
+    let html = '<table class="lb-table"><thead><tr><th>#</th><th>暱稱</th><th>OQ 值</th><th>等級</th></tr></thead><tbody>';
+    data.forEach((item, i) => {
+      const rc = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      html += `<tr><td class="rank ${rc}">${i+1}</td><td>${item.nickname}</td><td class="oq-val">US$${Number(item.oq).toLocaleString()}</td><td><span class="lv-badge">${getLevel(item.oq)}</span></td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('leaderboard').innerHTML = html;
+  } catch(e) {}
+}
+
+async function submitOQ() {
+  const oq = document.getElementById('oq-value').value;
+  const nickname = document.getElementById('nickname').value;
+  const email = document.getElementById('email').value;
+  if (!oq || !nickname || !email) return showToast('請填寫所有欄位');
+
+  const btn = document.querySelector('.submit-btn');
+  btn.disabled = true; btn.textContent = '提交中...';
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({oq:Number(oq), nickname, email})
+    });
+    if (res.ok) {
+      showToast('提交成功！歡迎加入 OQ 排行榜');
+      document.getElementById('oq-value').value = '';
+      document.getElementById('nickname').value = '';
+      document.getElementById('email').value = '';
+      loadLeaderboard();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || '提交失敗，請稍後再試');
+    }
+  } catch(e) { showToast('網路錯誤，請稍後再試'); }
+  btn.disabled = false; btn.textContent = '提交 OQ';
+}
+
+loadLeaderboard();
+</script>
 </body>
 </html>
