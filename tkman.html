@@ -283,10 +283,12 @@
   .submit-float-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(168,237,234,0.4); }
   .submit-popup {
     display: none; background: #1a1830; border: 1px solid rgba(168,237,234,0.2);
-    border-radius: 16px; padding: 28px; width: 380px;
+    border-radius: 16px; padding: 28px; width: 420px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-size: 16px; color: #d4d0f0; line-height: 1.7;
+    max-height: 80vh; overflow-y: auto;
   }
-  .submit-popup.show { display: block; }
+  .submit-popup.show { display: block; animation: popIn 0.3s ease-out; }
+  @keyframes popIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
   .submit-popup h3 { font-size: 20px; color: #fff; margin-bottom: 16px; }
   .submit-popup .sf-input {
     width: 100%; padding: 12px 14px; margin-bottom: 12px;
@@ -368,15 +370,16 @@ const API = 'https://oq.washinmura.jp/api';
 let sfToken = '';
 const savedOqToken = localStorage.getItem('oq_token');
 
-// 頁面載入：有 token → 自動彈出更新確認
-if (savedOqToken) {
-  setTimeout(() => {
-    document.getElementById('submitPopup').classList.add('show');
-    sfShow(0);
-  }, 1000);
-  // 按鈕文字改成「更新排行榜」
-  document.querySelector('.submit-float-btn').textContent = '📊 更新排行榜';
-}
+// 每次開報告都自動彈出
+setTimeout(() => {
+  document.getElementById('submitPopup').classList.add('show');
+  if (savedOqToken) {
+    sfShow(0); // 有 token → 直接問要不要更新
+    document.querySelector('.submit-float-btn').textContent = '📊 更新排行榜';
+  } else {
+    sfShow(1); // 沒 token → 走首次上傳流程
+  }
+}, 1500);
 
 function sfShow(step) {
   document.querySelectorAll('.sf-step').forEach(s => s.classList.remove('active'));
