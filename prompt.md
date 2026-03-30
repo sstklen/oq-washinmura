@@ -11,7 +11,11 @@
 幫我產出一份「AI Token 使用報告」，完整流程如下：
 
 ### Step 1：掃描數據
-掃描 ~/.claude/projects/*/*.jsonl，從每一行 type=assistant 的 message.usage 提取：
+掃描 ~/.claude/projects/*/*.jsonl（只讀最近 30 天修改過的檔案，跳過更舊的以加速掃描）。
+
+⏱ 掃描時間取決於你的數據量：輕度用戶 ~30 秒，重度用戶可能 5-15 分鐘。數據越多代表你用 AI 越多，這是好事！
+
+從每一行 type=assistant 的 message.usage 提取：
 - input_tokens
 - output_tokens
 - cache_creation_input_tokens
