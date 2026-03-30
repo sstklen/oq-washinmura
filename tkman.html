@@ -267,5 +267,49 @@
   </div>
 </div>
 
+<!-- 上傳排行榜按鈕（浮動在右下角，截圖時可忽略） -->
+<style>
+  .submit-float {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .submit-float-btn {
+    background: linear-gradient(135deg, #fed6e3, #a8edea);
+    color: #0f0c29; border: none; border-radius: 14px;
+    padding: 14px 28px; font-size: 18px; font-weight: 800;
+    cursor: pointer; box-shadow: 0 4px 20px rgba(168,237,234,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .submit-float-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(168,237,234,0.4); }
+  .submit-popup {
+    display: none; background: #1a1830; border: 1px solid rgba(168,237,234,0.2);
+    border-radius: 16px; padding: 24px; max-width: 400px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-size: 16px; color: #d4d0f0; line-height: 1.7;
+  }
+  .submit-popup.show { display: block; }
+  .submit-popup h3 { font-size: 20px; color: #fff; margin-bottom: 12px; }
+  .submit-popup p { margin-bottom: 10px; }
+  .submit-popup code { background: rgba(168,237,234,0.1); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+  .submit-popup .close-btn {
+    background: none; border: 1px solid rgba(168,237,234,0.2); color: #a8edea;
+    border-radius: 8px; padding: 6px 16px; font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
+</style>
+
+<div class="submit-float">
+  <div class="submit-popup" id="submitPopup">
+    <h3>🏆 上傳到 OQ 排行榜</h3>
+    <p>回到 Claude Code，對它說：</p>
+    <p><strong>「幫我提交到 OQ 排行榜」</strong></p>
+    <p>它會引導你：<br>
+    ① 輸入 email 驗證身份<br>
+    ② 設定排行榜暱稱<br>
+    ③ 一鍵提交</p>
+    <p style="font-size:14px; color:rgba(168,237,234,0.5);">🔒 只上傳統計數字，不上傳對話內容</p>
+    <button class="close-btn" onclick="document.getElementById('submitPopup').classList.remove('show')">知道了</button>
+  </div>
+  <button class="submit-float-btn" onclick="document.getElementById('submitPopup').classList.toggle('show')">🏆 上傳排行榜</button>
+</div>
+
 </body>
 </html>
