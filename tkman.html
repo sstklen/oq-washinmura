@@ -345,7 +345,18 @@
     <div class="sf-step" id="sf-step4">
       <h3>✅ 提交成功！</h3>
       <p>你已登上 OQ 排行榜</p>
-      <p style="margin-top:8px"><a href="https://oq.washinmura.jp" target="_blank" style="color:#a8edea;text-decoration:underline;font-size:18px">查看排行榜 →</a></p>
+      <p style="font-size:14px;color:rgba(168,237,234,0.5);margin-top:8px">下次產出報告時會自動問你要不要更新</p>
+      <p style="margin-top:12px"><a href="https://oq.washinmura.jp" target="_blank" style="color:#a8edea;text-decoration:underline;font-size:18px">查看排行榜 →</a></p>
+    </div>
+    <!-- Step 0: Auto-update (有 oq_token 時顯示) -->
+    <div class="sf-step" id="sf-step0">
+      <h3>📊 偵測到你已上榜</h3>
+      <p style="font-size:16px;margin-bottom:14px">要用最新數據更新排行榜嗎？</p>
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;font-size:17px;color:#a8edea">
+        <input type="checkbox" id="sf-auto-yes" checked style="width:22px;height:22px"> 更新我的 OQ 排行榜數據
+      </label>
+      <button class="sf-btn" onclick="sfAutoUpdate()">確認更新</button>
+      <button class="sf-btn" onclick="document.getElementById('submitPopup').classList.remove('show')" style="background:transparent;border:1px solid rgba(168,237,234,0.2);color:#a8edea;margin-top:8px">不用了</button>
     </div>
     <div class="sf-msg" id="sf-msg"></div>
   </div>
@@ -355,6 +366,17 @@
 <script>
 const API = 'https://oq.washinmura.jp/api';
 let sfToken = '';
+const savedOqToken = localStorage.getItem('oq_token');
+
+// 頁面載入：有 token → 自動彈出更新確認
+if (savedOqToken) {
+  setTimeout(() => {
+    document.getElementById('submitPopup').classList.add('show');
+    sfShow(0);
+  }, 1000);
+  // 按鈕文字改成「更新排行榜」
+  document.querySelector('.submit-float-btn').textContent = '📊 更新排行榜';
+}
 
 function sfShow(step) {
   document.querySelectorAll('.sf-step').forEach(s => s.classList.remove('active'));
@@ -433,7 +455,41 @@ async function sfSubmit() {
         return sfMsg(e.error || '提交失敗', true);
       }
     }
+    // 存 oq_token 到 localStorage
+    const submitData = await res.json().catch(() => ({}));
+    if (submitData.oq_token) {
+      localStorage.setItem('oq_token', submitData.oq_token);
+    }
     sfShow(4);
+  } catch(e) { sfMsg('網路錯誤', true); }
+}
+
+function getOqDataFromPage() {
+  const heroNum = document.querySelector('.hero-num');
+  const oqText = heroNum ? heroNum.textContent.replace(/[^0-9.]/g, '') : '0';
+  const oqMultiplier = heroNum && heroNum.textContent.includes('億') ? 100000000 : 1;
+  const tokensMonthly = Math.round(parseFloat(oqText) * oqMultiplier);
+  const salaryNum = document.querySelector('.salary-card .num');
+  const oqVal = salaryNum ? parseInt(salaryNum.textContent.replace(/[^0-9]/g, '')) * 1000 : 0;
+  return { oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2 };
+}
+
+async function sfAutoUpdate() {
+  if (!document.getElementById('sf-auto-yes').checked) {
+    document.getElementById('submitPopup').classList.remove('show');
+    return;
+  }
+  const token = localStorage.getItem('oq_token');
+  if (!token) return sfMsg('找不到 token，請重新提交', true);
+  try {
+    const data = getOqDataFromPage();
+    const res = await fetch(API + '/oq/update', {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ oq_token: token, ...data })
+    });
+    if (!res.ok) { const e = await res.json(); return sfMsg(e.error || '更新失敗', true); }
+    sfShow(4);
+    document.querySelector('#sf-step4 h3').textContent = '✅ 已更新！';
   } catch(e) { sfMsg('網路錯誤', true); }
 }
 </script>
