@@ -9,11 +9,34 @@ export type BattleRecord = {
   total: number;
 };
 
+// 五階 OQ 指紋（L1 量由其他欄位計算，這裡存 L2-L5）
+export type OqFingerprint = {
+  // L2 效
+  cache_hit_rate: number;       // 快取命中率 %
+  input_ratio: number;          // 指令佔比 %
+  // L3 廣
+  project_count: number;        // 同時專案數
+  tool_diversity: number;       // 工具種類數
+  multi_model: boolean;         // 多模型
+  tool_calls_total: number;     // 工具呼叫總次數
+  primary_period: string;       // 主要工作時段
+  // L4 深
+  streak_days: number;          // 連續使用天數
+  active_days: number;          // 活躍天數/30
+  session_count: number;        // session 數
+  // L5 智
+  work_style: string;           // 工作風格
+  systematic_rate: number;      // 系統化操作率 %
+  agent_ratio: number;          // Agent 佔比 %
+  oq_iq: number;                // 綜合智慧分數 /99
+};
+
 export type SubmitOqInput = {
   oq_value?: number;
   tokens_monthly?: number;
   api_cost_monthly?: number;
   battle_record?: BattleRecord | null;
+  fingerprint?: OqFingerprint | null;
 };
 
 export type UpdateOqInput = {
@@ -23,6 +46,7 @@ export type UpdateOqInput = {
   tokens_monthly?: number;
   api_cost_monthly?: number;
   battle_record?: BattleRecord | null;
+  fingerprint?: OqFingerprint | null;
 };
 
 export type UpdateSettingsInput = {
@@ -55,6 +79,7 @@ type StoredOqProfileRow = {
   tokens_monthly: number;
   api_cost_monthly: number;
   battle_record: string | null;
+  fingerprint: string | null;
 };
 
 import { HTML_TAG_PATTERN, hasField } from "../constants";
@@ -272,6 +297,8 @@ export function submitOq(
   const level = calculateLevel(validated.tokens_monthly);
   const oqToken = generateOqToken();
 
+  const fingerprint = data.fingerprint ?? null;
+
   db.query(`
     INSERT INTO oq_profiles (
       user_id,
@@ -280,8 +307,9 @@ export function submitOq(
       level,
       tokens_monthly,
       api_cost_monthly,
-      battle_record
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      battle_record,
+      fingerprint
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId,
     validated.oq_value,
@@ -290,6 +318,7 @@ export function submitOq(
     validated.tokens_monthly,
     validated.api_cost_monthly,
     validated.battle_record === null ? null : JSON.stringify(validated.battle_record),
+    fingerprint === null ? null : JSON.stringify(fingerprint),
   );
 
   return {
@@ -333,6 +362,9 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
   const nextBattleRecord = hasField(data,"battle_record")
     ? (data.battle_record ?? null)
     : parseBattleRecord(existingProfile.battle_record);
+  const nextFingerprint = hasField(data,"fingerprint")
+    ? (data.fingerprint ?? null)
+    : null;
   const nextLevel = calculateLevel(nextTokensMonthly);
 
   db.query(`
@@ -342,6 +374,7 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
       tokens_monthly = ?,
       api_cost_monthly = ?,
       battle_record = ?,
+      fingerprint = ?,
       level = ?,
       updated_at = datetime('now')
     WHERE id = ?
@@ -350,6 +383,7 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
     nextTokensMonthly,
     nextApiCostMonthly,
     nextBattleRecord === null ? null : JSON.stringify(nextBattleRecord),
+    nextFingerprint === null ? null : JSON.stringify(nextFingerprint),
     nextLevel,
     existingProfile.id,
   );

@@ -35,6 +35,7 @@ export function getDb(path?: string): Database {
       tokens_monthly INTEGER,
       api_cost_monthly REAL,
       battle_record TEXT,
+      fingerprint TEXT,
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -66,6 +67,13 @@ export function getDb(path?: string): Database {
     CREATE INDEX IF NOT EXISTS idx_contacts_from_to
       ON contacts(from_user_id, to_oq_id);
   `);
+
+  // 既有 DB migrate：加 fingerprint 欄位（已有就跳過）
+  try {
+    db.exec("ALTER TABLE oq_profiles ADD COLUMN fingerprint TEXT");
+  } catch {
+    // 欄位已存在，忽略
+  }
 
   return db;
 }
