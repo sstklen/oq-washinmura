@@ -18,9 +18,13 @@ export function createAuthRoutes(db: Database): Hono {
       return c.json({ error: "invalid_email" }, 400);
     }
 
-    await sendCode(db, body.email);
-
-    return c.json({ ok: true });
+    try {
+      await sendCode(db, body.email);
+      return c.json({ ok: true });
+    } catch (error) {
+      console.error("[auth/send-code]", error);
+      return c.json({ error: "email_send_failed" }, 500);
+    }
   });
 
   app.post("/verify", async (c) => {
