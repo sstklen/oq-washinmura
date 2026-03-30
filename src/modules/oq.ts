@@ -205,6 +205,11 @@ function validateDisplayName(displayName: string) {
   if (HTML_TAG_PATTERN.test(displayName)) {
     throw new Error("display_name_invalid");
   }
+
+  // 擋 XSS event handler 注入（onmouseover= 等）
+  if (/on\w+\s*=/i.test(displayName)) {
+    throw new Error("display_name_invalid");
+  }
 }
 
 function validateSubmission(data: SubmitOqInput): {

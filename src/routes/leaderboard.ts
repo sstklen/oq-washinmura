@@ -101,6 +101,14 @@ export function createLeaderboardRoutes(db: Database): Hono {
       return c.json({ error: "invalid_range" }, 400);
     }
 
+    // SPEC-05: page < 1 或 limit < 1 → 400
+    const rawPage = c.req.query("page");
+    const rawLimit = c.req.query("limit");
+    if ((rawPage !== undefined && parseInteger(rawPage) !== null && parseInteger(rawPage)! < 1) ||
+        (rawLimit !== undefined && parseInteger(rawLimit) !== null && parseInteger(rawLimit)! < 1)) {
+      return c.json({ error: "invalid_pagination" }, 400);
+    }
+
     const levels = parseLevels(levelQuery);
     const { params, sql: whereClause } = buildWhereClause(levels, min, max);
     const offset = (page - 1) * limit;
