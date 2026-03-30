@@ -283,33 +283,154 @@
   .submit-float-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(168,237,234,0.4); }
   .submit-popup {
     display: none; background: #1a1830; border: 1px solid rgba(168,237,234,0.2);
-    border-radius: 16px; padding: 24px; max-width: 400px;
+    border-radius: 16px; padding: 28px; width: 380px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-size: 16px; color: #d4d0f0; line-height: 1.7;
   }
   .submit-popup.show { display: block; }
-  .submit-popup h3 { font-size: 20px; color: #fff; margin-bottom: 12px; }
-  .submit-popup p { margin-bottom: 10px; }
-  .submit-popup code { background: rgba(168,237,234,0.1); padding: 2px 6px; border-radius: 4px; font-size: 14px; }
-  .submit-popup .close-btn {
-    background: none; border: 1px solid rgba(168,237,234,0.2); color: #a8edea;
-    border-radius: 8px; padding: 6px 16px; font-size: 14px; cursor: pointer; margin-top: 8px;
+  .submit-popup h3 { font-size: 20px; color: #fff; margin-bottom: 16px; }
+  .submit-popup .sf-input {
+    width: 100%; padding: 12px 14px; margin-bottom: 12px;
+    background: rgba(168,237,234,0.06); border: 1px solid rgba(168,237,234,0.15);
+    border-radius: 10px; font-size: 16px; color: #fff; outline: none;
+    font-family: inherit;
   }
+  .submit-popup .sf-input:focus { border-color: rgba(254,214,227,0.4); }
+  .submit-popup .sf-input::placeholder { color: rgba(168,237,234,0.3); }
+  .submit-popup .sf-btn {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px;
+    background: linear-gradient(135deg, #fed6e3, #a8edea); color: #0f0c29;
+    transition: opacity 0.2s;
+  }
+  .submit-popup .sf-btn:hover { opacity: 0.85; }
+  .submit-popup .sf-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .submit-popup .sf-msg { font-size: 14px; margin-top: 10px; text-align: center; }
+  .submit-popup .sf-step { display: none; }
+  .submit-popup .sf-step.active { display: block; }
+  .submit-popup .sf-privacy { font-size: 13px; color: rgba(168,237,234,0.4); margin-top: 12px; }
 </style>
 
 <div class="submit-float">
   <div class="submit-popup" id="submitPopup">
-    <h3>🏆 上傳到 OQ 排行榜</h3>
-    <p>回到 Claude Code，對它說：</p>
-    <p><strong>「幫我提交到 OQ 排行榜」</strong></p>
-    <p>它會引導你：<br>
-    ① 輸入 email 驗證身份<br>
-    ② 設定排行榜暱稱<br>
-    ③ 一鍵提交</p>
-    <p style="font-size:14px; color:rgba(168,237,234,0.5);">🔒 只上傳統計數字，不上傳對話內容</p>
-    <button class="close-btn" onclick="document.getElementById('submitPopup').classList.remove('show')">知道了</button>
+    <!-- Step 1: Email -->
+    <div class="sf-step active" id="sf-step1">
+      <h3>🏆 上傳到 OQ 排行榜</h3>
+      <input class="sf-input" id="sf-email" type="email" placeholder="輸入你的 email（驗證身份用）">
+      <button class="sf-btn" onclick="sfSendCode()">發送驗證碼</button>
+      <div class="sf-privacy">🔒 Email 不公開，只用於驗證和媒合通知</div>
+    </div>
+    <!-- Step 2: Code -->
+    <div class="sf-step" id="sf-step2">
+      <h3>📧 輸入驗證碼</h3>
+      <p style="font-size:14px;margin-bottom:12px">驗證碼已寄到 <span id="sf-email-show" style="color:#a8edea"></span></p>
+      <input class="sf-input" id="sf-code" type="text" placeholder="6 位數字驗證碼" maxlength="6">
+      <button class="sf-btn" onclick="sfVerify()">驗證</button>
+    </div>
+    <!-- Step 3: Nickname -->
+    <div class="sf-step" id="sf-step3">
+      <h3>✏️ 排行榜暱稱</h3>
+      <input class="sf-input" id="sf-name" type="text" placeholder="本名、暱稱、江湖名都行">
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:14px;color:#a8edea;cursor:pointer">
+        <input type="checkbox" id="sf-contact" checked style="width:18px;height:18px"> 讓找人方能聯絡我
+      </label>
+      <button class="sf-btn" onclick="sfSubmit()">提交到排行榜</button>
+    </div>
+    <!-- Step 4: Done -->
+    <div class="sf-step" id="sf-step4">
+      <h3>✅ 提交成功！</h3>
+      <p>你已登上 OQ 排行榜</p>
+      <p style="margin-top:8px"><a href="https://oq.washinmura.jp" target="_blank" style="color:#a8edea;text-decoration:underline;font-size:18px">查看排行榜 →</a></p>
+    </div>
+    <div class="sf-msg" id="sf-msg"></div>
   </div>
   <button class="submit-float-btn" onclick="document.getElementById('submitPopup').classList.toggle('show')">🏆 上傳排行榜</button>
 </div>
+
+<script>
+const API = 'https://oq.washinmura.jp/api';
+let sfToken = '';
+
+function sfShow(step) {
+  document.querySelectorAll('.sf-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('sf-step' + step).classList.add('active');
+  document.getElementById('sf-msg').textContent = '';
+}
+
+function sfMsg(text, isError) {
+  const el = document.getElementById('sf-msg');
+  el.textContent = text;
+  el.style.color = isError ? '#f87171' : '#4ade80';
+}
+
+async function sfSendCode() {
+  const email = document.getElementById('sf-email').value.trim();
+  if (!email || !email.includes('@')) return sfMsg('請輸入有效的 email', true);
+  try {
+    const res = await fetch(API + '/auth/send-code', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email})
+    });
+    if (!res.ok) { const e = await res.json(); return sfMsg(e.error || '發送失敗', true); }
+    document.getElementById('sf-email-show').textContent = email;
+    sfShow(2);
+  } catch(e) { sfMsg('網路錯誤', true); }
+}
+
+async function sfVerify() {
+  const email = document.getElementById('sf-email').value.trim();
+  const code = document.getElementById('sf-code').value.trim();
+  if (!code || code.length !== 6) return sfMsg('請輸入 6 位數字', true);
+  try {
+    const res = await fetch(API + '/auth/verify', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, code})
+    });
+    if (!res.ok) { const e = await res.json(); return sfMsg(e.error === 'invalid_code' ? '驗證碼錯誤' : e.error, true); }
+    const data = await res.json();
+    sfToken = data.token;
+    sfShow(3);
+  } catch(e) { sfMsg('網路錯誤', true); }
+}
+
+async function sfSubmit() {
+  const name = document.getElementById('sf-name').value.trim();
+  if (!name) return sfMsg('請輸入暱稱', true);
+  const contactable = document.getElementById('sf-contact').checked;
+  try {
+    // 設定暱稱
+    await fetch(API + '/oq/settings', {
+      method: 'PUT', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
+      body: JSON.stringify({display_name: name, contactable})
+    });
+    // 從頁面抓 OQ 數據（模板裡的數字）
+    const heroNum = document.querySelector('.hero-num');
+    const oqText = heroNum ? heroNum.textContent.replace(/[^0-9.]/g, '') : '0';
+    const oqMultiplier = heroNum && heroNum.textContent.includes('億') ? 100000000 : 1;
+    const tokensMonthly = Math.round(parseFloat(oqText) * oqMultiplier);
+    // 從月薪卡抓 OQ 值
+    const salaryNum = document.querySelector('.salary-card .num');
+    const oqVal = salaryNum ? parseInt(salaryNum.textContent.replace(/[^0-9]/g, '')) * 1000 : 0;
+
+    const res = await fetch(API + '/oq/submit', {
+      method: 'POST', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
+      body: JSON.stringify({oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2})
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      if (e.error === 'already_submitted') {
+        // 已提交過，改用 update
+        await fetch(API + '/oq/update', {
+          method: 'PUT', headers: {'Authorization':'Bearer '+sfToken, 'Content-Type':'application/json'},
+          body: JSON.stringify({oq_value: oqVal, tokens_monthly: tokensMonthly, api_cost_monthly: oqVal / 2})
+        });
+      } else {
+        return sfMsg(e.error || '提交失敗', true);
+      }
+    }
+    sfShow(4);
+  } catch(e) { sfMsg('網路錯誤', true); }
+}
+</script>
 
 </body>
 </html>
