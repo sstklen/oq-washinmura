@@ -159,22 +159,22 @@
   <div>
     <div class="top-line">AI 時代的 OQ 值 — Token 操控力</div>
     <div class="hero-row">
-      <div class="hero-num">314億</div>
+      <div class="hero-num">{{TOTAL_TOKENS}}</div>
       <div class="hero-sub">Tokens / 月</div>
     </div>
     <div class="level-badge">
-      <span class="lv">Lv.6</span>
-      <span class="name">矽谷新創規格 = 20+ 人工程部</span>
+      <span class="lv">{{LEVEL}}</span>
+      <span class="name">{{LEVEL_TITLE}}</span>
     </div>
-    <div class="hero-period">2026.02.28 — 03.30 · tkman · oq.washinmura.jp</div>
+    <div class="hero-period">{{DATE_RANGE}} · {{USERNAME}} · oq.washinmura.jp</div>
 
     <div class="saving">
       <div class="row">
-        <div><div class="lbl">月 API 等值</div><div class="val">US$40,279</div></div>
+        <div><div class="lbl">月 API 等值</div><div class="val">{{API_COST}}</div></div>
         <div class="divider">→</div>
         <div><div class="lbl">5× Claude Max / 月</div><div class="val g">US$1,000</div></div>
       </div>
-      <div class="note">月 API 費 = 40 個月訂閱費 · 省下 97.5%</div>
+      <div class="note">月 API 費 = {{SUBSCRIPTION_MONTHS}} 個月訂閱費 · 省下 {{SAVE_PERCENT}}</div>
     </div>
 
     <div class="achievements">
@@ -363,6 +363,7 @@
       <button class="sf-btn" onclick="document.getElementById('submitPopup').classList.remove('show')" style="background:transparent;border:1px solid rgba(168,237,234,0.2);color:#a8edea;margin-top:8px">不用了</button>
     </div>
     <div class="sf-msg" id="sf-msg"></div>
+    <button class="sf-btn" id="sf-retry-btn" onclick="sfRetry()" style="display:none;background:transparent;border:1px solid rgba(168,237,234,0.2);color:#a8edea;margin-top:8px">重試</button>
   </div>
   <button class="submit-float-btn" onclick="document.getElementById('submitPopup').classList.toggle('show')">🏆 上傳排行榜</button>
 </div>
@@ -389,13 +390,21 @@ function sfShow(step) {
   document.getElementById('sf-msg').textContent = '';
 }
 
+let lastAction = null;
 function sfMsg(text, isError) {
   const el = document.getElementById('sf-msg');
   el.textContent = text;
   el.style.color = isError ? '#f87171' : '#4ade80';
+  document.getElementById('sf-retry-btn').style.display = isError ? 'block' : 'none';
+}
+function sfRetry() {
+  document.getElementById('sf-retry-btn').style.display = 'none';
+  document.getElementById('sf-msg').textContent = '';
+  if (lastAction) lastAction();
 }
 
 async function sfSendCode() {
+  lastAction = sfSendCode;
   const email = document.getElementById('sf-email').value.trim();
   if (!email || !email.includes('@')) return sfMsg('請輸入有效的 email', true);
   try {
@@ -410,6 +419,7 @@ async function sfSendCode() {
 }
 
 async function sfVerify() {
+  lastAction = sfVerify;
   const email = document.getElementById('sf-email').value.trim();
   const code = document.getElementById('sf-code').value.trim();
   if (!code || code.length !== 6) return sfMsg('請輸入 6 位數字', true);
@@ -426,6 +436,7 @@ async function sfVerify() {
 }
 
 async function sfSubmit() {
+  lastAction = sfSubmit;
   const name = document.getElementById('sf-name').value.trim();
   if (!name) return sfMsg('請輸入暱稱', true);
   const contactable = document.getElementById('sf-share-all')?.checked ?? true;
@@ -519,6 +530,7 @@ function getOqDataFromPage() {
 }
 
 async function sfAutoUpdate() {
+  lastAction = sfAutoUpdate;
   if (!document.getElementById('sf-auto-yes').checked) {
     document.getElementById('submitPopup').classList.remove('show');
     return;
