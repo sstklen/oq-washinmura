@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OQ — AI 時代的競爭力指標</title>
+<title>OQ — AI 時代的競爭力指標（方案 B：乾淨白底）</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+TC:wght@400;600;700;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -176,48 +176,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function copyPrompt(){
-  navigator.clipboard.writeText(document.getElementById('prompt-text').textContent)
-    .then(()=>showToast('已複製！貼進 Claude Code 就能跑'));
-}
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.style.display='block';
-  setTimeout(()=>t.style.display='none',3000);
-}
-function fmtNum(n){return Number(n).toLocaleString()}
-async function loadLeaderboard(){
-  try{
-    const res=await fetch('/api/leaderboard');
-    if(!res.ok)return;
-    const data=await res.json();
-    const statEl=document.querySelector('.stat-card .stat-num');
-    if(statEl)statEl.textContent=data.pagination.total;
-    if(!data.leaderboard||!data.leaderboard.length)return;
-    let html='<table class="lb-table" style="width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e8e8e8"><thead><tr>';
-    html+='<th style="font-size:18px;color:#999;text-align:left;padding:14px 16px;background:#f5f5f5">#</th>';
-    html+='<th style="font-size:18px;color:#999;text-align:left;padding:14px 16px;background:#f5f5f5">名稱</th>';
-    html+='<th style="font-size:18px;color:#999;text-align:left;padding:14px 16px;background:#f5f5f5">OQ 值</th>';
-    html+='<th style="font-size:18px;color:#999;text-align:left;padding:14px 16px;background:#f5f5f5">等級</th>';
-    html+='<th style="font-size:18px;color:#999;text-align:left;padding:14px 16px;background:#f5f5f5">月 Token</th>';
-    html+='</tr></thead><tbody>';
-    data.leaderboard.forEach((item,i)=>{
-      const rc=i===0?'color:#ffd700':i===1?'color:#c0c0c0':i===2?'color:#cd7f32':'color:#1a1a1a';
-      const tokens=item.tokens_monthly>1e9?(item.tokens_monthly/1e9).toFixed(1)+'B':item.tokens_monthly>1e6?(item.tokens_monthly/1e6).toFixed(0)+'M':fmtNum(item.tokens_monthly||0);
-      html+=`<tr style="border-bottom:1px solid #f0f0f0">
-        <td style="padding:16px;font-size:28px;font-weight:900;width:50px;${rc}">${i+1}</td>
-        <td style="padding:16px;font-size:22px;font-weight:600">${item.display_name}</td>
-        <td style="padding:16px;font-size:24px;font-weight:900;color:#0066cc">US$${fmtNum(item.oq_value)}</td>
-        <td style="padding:16px"><span style="background:#eef5ff;border:1px solid #cce0ff;border-radius:8px;padding:4px 14px;font-size:18px;color:#0066cc;font-weight:600">${item.level_title||'Lv.'+item.level}</span></td>
-        <td style="padding:16px;font-size:20px;color:#999">${tokens}</td>
-      </tr>`;
-    });
-    html+='</tbody></table>';
-    if(data.pagination.total>0)html+=`<div style="text-align:center;margin-top:16px;font-size:18px;color:#bbb">共 ${data.pagination.total} 人上榜</div>`;
-    document.getElementById('leaderboard').innerHTML=html;
-  }catch(e){}
-}
-loadLeaderboard();
+function copyPrompt(){navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>{const t=document.getElementById('toast');t.textContent='已複製！';t.style.display='block';setTimeout(()=>t.style.display='none',3000)})}
 </script>
 </body>
 </html>
