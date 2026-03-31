@@ -93,18 +93,22 @@ export async function sendContact(
     throw new Error("cannot_contact_self");
   }
 
-  if (getRecentContactCount(db, input.fromUserId, input.toOqId) >= CONTACT_RATE_LIMIT) {
-    throw new Error("contact_rate_limit");
-  }
+  // transaction 包住 rate limit check + INSERT（防併發穿透）
+  const { contactId, fromEmail } = db.transaction(() => {
+    if (getRecentContactCount(db, input.fromUserId, input.toOqId) >= CONTACT_RATE_LIMIT) {
+      throw new Error("contact_rate_limit");
+    }
 
-  const fromEmail = getUserEmail(db, input.fromUserId);
-  const insertResult = db
-    .query(`
-      INSERT INTO contacts (from_user_id, to_oq_id, message, status)
-      VALUES (?, ?, ?, 'failed')
-    `)
-    .run(input.fromUserId, input.toOqId, sanitizedMessage);
-  const contactId = Number(insertResult.lastInsertRowid);
+    const email = getUserEmail(db, input.fromUserId);
+    const result = db
+      .query(`
+        INSERT INTO contacts (from_user_id, to_oq_id, message, status)
+        VALUES (?, ?, ?, 'failed')
+      `)
+      .run(input.fromUserId, input.toOqId, sanitizedMessage);
+
+    return { contactId: Number(result.lastInsertRowid), fromEmail: email };
+  })();
 
   try {
     await sendEmail(target.email, "[OQ] 有人想聯絡你", `${sanitizedMessage}\n\n${fromEmail}`);

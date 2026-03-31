@@ -22,6 +22,12 @@ app.onError((err, c) => {
   return c.json({ error: "internal_server_error" }, 500);
 });
 
+// 啟動時檢查必要環境變數
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET not set");
+  process.exit(1);
+}
+
 // 初始化 DB 並 export 供路由模組使用
 export const db = getDb();
 

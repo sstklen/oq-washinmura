@@ -332,6 +332,9 @@ export function submitOq(
   const oqToken = generateOqToken();
 
   const fingerprint = data.fingerprint ?? null;
+  if (fingerprint !== null && (typeof fingerprint !== "object" || Array.isArray(fingerprint))) {
+    throw new Error("invalid_fingerprint");
+  }
   const oqType = extractOqType(fingerprint);
 
   db.query(`
@@ -399,6 +402,9 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
   const nextBattleRecord = hasField(data,"battle_record")
     ? (data.battle_record ?? null)
     : parseBattleRecord(existingProfile.battle_record);
+  if (hasField(data,"fingerprint") && data.fingerprint != null && (typeof data.fingerprint !== "object" || Array.isArray(data.fingerprint))) {
+    throw new Error("invalid_fingerprint");
+  }
   const nextFingerprintJson = hasField(data,"fingerprint")
     ? (data.fingerprint == null ? null : JSON.stringify(data.fingerprint))
     : existingProfile.fingerprint;

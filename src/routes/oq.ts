@@ -23,6 +23,7 @@ const badRequestErrors = new Set([
   "display_name_invalid",
   "no_fields",
   "invalid_contactable",
+  "invalid_fingerprint",
 ]);
 
 import { LEVEL_TITLES, parsePositiveInt } from "../constants";
