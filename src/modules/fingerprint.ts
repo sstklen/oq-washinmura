@@ -202,7 +202,7 @@ export function submitFingerprint(
   db: Database,
   data: SubmitFingerprintInput,
 ): { id: number; oq_type: string } {
-  ensureFingerprintTable(db);
+
   const validated = validateSubmitFingerprintInput(data);
   const oqType = validated.oq_type ?? classifyOqType(validated.scores);
   const existing = db
@@ -237,7 +237,7 @@ export function submitFingerprint(
 }
 
 export function getFingerprint(db: Database, id: number): OqFingerprintRecord | null {
-  ensureFingerprintTable(db);
+
   const row = db
     .query(`
       SELECT id, anonymous_id, scores, oq_type, created_at, updated_at
@@ -254,7 +254,7 @@ export function getFingerprint(db: Database, id: number): OqFingerprintRecord | 
 }
 
 export function matchFingerprints(db: Database, id: number, limit = 5): MatchResult[] {
-  ensureFingerprintTable(db);
+
   const source = getFingerprint(db, id);
 
   if (!source) {
