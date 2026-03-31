@@ -260,17 +260,18 @@ function validateOptionalOqFields(data: UpdateOqInput) {
 }
 
 function validateDisplayName(displayName: string) {
-  if (displayName.trim().length === 0) {
+  const trimmed = displayName.trim();
+  if (trimmed.length === 0) {
     throw new Error("display_name_empty");
   }
 
-  if (displayName.length > 30) {
+  if (trimmed.length > 30) {
     throw new Error("display_name_too_long");
   }
 
   // 白名單：中日韓 + 英數 + 空白 + 底線 + 連字號 + 句點 + Emoji（tkman 授權放行）
   // 只擋 HTML tag 和 XSS event handler
-  if (/<[^>]*>/.test(displayName) || /on\w+\s*=/i.test(displayName)) {
+  if (/<[^>]*>/.test(trimmed) || /on\w+\s*=/i.test(trimmed)) {
     throw new Error("display_name_invalid");
   }
 }

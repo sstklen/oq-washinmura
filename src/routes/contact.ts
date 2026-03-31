@@ -34,7 +34,7 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
     const body = await c.req.json<ContactRequestBody>();
 
     try {
-      const result = await sendContact(db, {
+      await sendContact(db, {
         fromUserId: c.get("userId"),
         toOqId: oqId,
         message: typeof body.message === "string" ? body.message : "",
