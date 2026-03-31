@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { getDb } from "./db";
 import { corsMiddleware } from "./middleware/cors";
-import { authSendCodeLimiter, authVerifyLimiter, leaderboardLimiter } from "./middleware/rate-limit";
+import { authSendCodeLimiter, authVerifyLimiter, leaderboardLimiter, defaultLimiter } from "./middleware/rate-limit";
 import { createAuthRoutes } from "./routes/auth";
 import { createContactRoutes } from "./routes/contact";
 import { createFingerprintRoutes } from "./routes/fingerprint";
@@ -47,6 +47,8 @@ app.get("/health", (c) =>
 app.use("/api/auth/send-code", authSendCodeLimiter);
 app.use("/api/auth/verify", authVerifyLimiter);
 app.use("/api/leaderboard", leaderboardLimiter);
+app.use("/api/oq/*", defaultLimiter);
+app.use("/api/contact/*", defaultLimiter);
 
 app.route("/api/auth", createAuthRoutes(db));
 app.route("/api/contact", createContactRoutes(db));

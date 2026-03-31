@@ -9,6 +9,7 @@ type RateLimitOptions = {
   windowMs: number;
   max: number;
   keyFn: (c: Context) => string;
+  errorKey?: string;
 };
 
 type RateLimiterState = {
@@ -51,6 +52,7 @@ async function applyRateLimit(
   next: () => Promise<void>,
   state: RateLimiterState,
   key: string,
+  errorKey = "rate_limit",
 ): Promise<Response | void> {
   const now = Date.now();
   const normalizedKey = normalizeKey(key);
@@ -68,7 +70,7 @@ async function applyRateLimit(
   if (current.count >= state.max) {
     return c.json(
       {
-        error: "rate_limit",
+        error: errorKey,
         retry_after: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
       },
       429,
@@ -110,20 +112,20 @@ export function createRateLimiter(options: RateLimitOptions): MiddlewareHandler 
   const state = createRateLimiterState(options);
 
   return async (c, next) => {
-    return await applyRateLimit(c, next, state, options.keyFn(c));
+    return await applyRateLimit(c, next, state, options.keyFn(c), options.errorKey);
   };
 }
 
 function createJsonFieldRateLimiter(
   fieldName: string,
-  options: Pick<RateLimitOptions, "windowMs" | "max">,
+  options: Pick<RateLimitOptions, "windowMs" | "max"> & { errorKey?: string },
 ): MiddlewareHandler {
   const state = createRateLimiterState(options);
 
   return async (c, next) => {
     const key = await getJsonField(c, fieldName);
 
-    return await applyRateLimit(c, next, state, key);
+    return await applyRateLimit(c, next, state, key, options.errorKey);
   };
 }
 
@@ -135,6 +137,7 @@ export const authSendCodeLimiter = createJsonFieldRateLimiter("email", {
 export const authVerifyLimiter = createJsonFieldRateLimiter("email", {
   windowMs: 10 * 60_000,
   max: 5,
+  errorKey: "too_many_attempts",
 });
 
 export const leaderboardLimiter = createRateLimiter({
