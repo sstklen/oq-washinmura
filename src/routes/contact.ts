@@ -60,7 +60,8 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
         }
       }
 
-      throw error;
+      console.error("[contact]", error);
+      return c.json({ error: "email_send_failed" }, 500);
     }
   });
 

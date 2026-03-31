@@ -10,6 +10,15 @@ import { createOqRoutes } from "./routes/oq";
 
 const app = new Hono();
 
+// 全域 error handler — 壞 JSON、未捕獲 throw 都回 JSON 不回 500 裸文字
+app.onError((err, c) => {
+  if (err instanceof SyntaxError && err.message.includes("JSON")) {
+    return c.json({ error: "invalid_json" }, 400);
+  }
+  console.error("[unhandled]", err);
+  return c.json({ error: "internal_server_error" }, 500);
+});
+
 // 初始化 DB 並 export 供路由模組使用
 export const db = getDb();
 
