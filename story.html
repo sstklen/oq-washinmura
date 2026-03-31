@@ -248,6 +248,13 @@
 重要：如果你沒有真實的數據，沒有被糾正的記憶，請誠實說。不要編造一段不存在的關係。這篇文章的深度，等於我們真實合作的深度。</pre>
 <button class="copy-btn" onclick="copyStoryPrompt()">複製這段提示語</button>
 <div class="note">提醒：如果你昨天才開始用 AI，這個提示語什麼都產不出來。<br>提示語是種子，你跟 AI 的關係是土壤。沒有土壤，長不出深度。<br><strong>這就是 OQ。</strong></div>
+
+<div style="border-top:2px solid #e8e8e8;margin-top:24px;padding-top:24px">
+  <p style="font-size:20px;font-weight:700;margin-bottom:12px">你的 AI 寫出來了？分享給全世界：</p>
+  <button class="copy-btn" onclick="shareStoryToX()" style="background:#000;margin-bottom:8px">𝕏 分享到 X / Twitter</button>
+  <button class="copy-btn" onclick="shareStoryToLinkedIn()" style="background:#0A66C2;margin-bottom:8px">in 分享到 LinkedIn</button>
+  <div style="font-size:16px;color:#999;margin-top:8px;text-align:center">用 <strong style="color:#0066cc">#MyOQStory</strong> 標籤，讓大家看到你跟 AI 的故事</div>
+</div>
 </div>
 
 <!-- CTA -->
@@ -266,14 +273,21 @@
 
 <div class="toast" id="toast"></div>
 <script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
 function copyStoryPrompt() {
   navigator.clipboard.writeText(document.getElementById('story-prompt').textContent)
-    .then(() => {
-      const t = document.getElementById('toast');
-      t.textContent = '已複製！貼進你的 AI 試試看';
-      t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', 3000);
-    });
+    .then(() => showToast('已複製！貼進你的 AI 試試看'));
+}
+function shareStoryToX() {
+  const text = '我讓 AI 用第一人稱寫了一篇「我跟我的使用者」的故事。\n\n結果⋯⋯它比我更了解我自己。\n\n你也試試 👉 oq.washinmura.jp/story\n\n#MyOQStory #OQ #AI統御力';
+  window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+}
+function shareStoryToLinkedIn() {
+  window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent('https://oq.washinmura.jp/story'), '_blank');
 }
 </script>
 </body>
