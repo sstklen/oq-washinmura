@@ -196,6 +196,31 @@ describe("submitFingerprint", () => {
       oq_type: "放大型",
     });
   });
+
+  test("throws invalid_anonymous_id when the anonymous_id contains HTML tags", () => {
+    const db = createTestDb();
+
+    expect(() =>
+      submitFingerprint(db, {
+        anonymous_id: "<script>alert(1)</script>",
+        scores: createScores(),
+      }),
+    ).toThrow("invalid_anonymous_id");
+
+    expect(() =>
+      submitFingerprint(db, {
+        anonymous_id: "<img src=x onerror=alert(1)>",
+        scores: createScores(),
+      }),
+    ).toThrow("invalid_anonymous_id");
+
+    expect(() =>
+      submitFingerprint(db, {
+        anonymous_id: "<div onmouseover=alert(1)>hover</div>",
+        scores: createScores(),
+      }),
+    ).toThrow("invalid_anonymous_id");
+  });
 });
 
 describe("getFingerprint", () => {

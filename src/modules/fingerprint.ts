@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { OQ_TYPES } from "../constants";
+import { HTML_TAG_PATTERN, OQ_TYPES } from "../constants";
 import { normalizeOqType } from "./oq";
 
 const OQ_SCORE_KEYS = [
@@ -101,6 +101,11 @@ function validateSubmitFingerprintInput(data: SubmitFingerprintInput): {
 
   if (data.anonymous_id.trim().length > 200) {
     throw new Error("anonymous_id_too_long");
+  }
+
+  // 防止 HTML tag 存入 anonymous_id（預防儲存型 XSS）
+  if (HTML_TAG_PATTERN.test(data.anonymous_id.trim())) {
+    throw new Error("invalid_anonymous_id");
   }
 
   if (!isValidScores(data.scores)) {

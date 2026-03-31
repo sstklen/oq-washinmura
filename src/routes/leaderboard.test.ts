@@ -465,4 +465,24 @@ describe("createLeaderboardRoutes", () => {
       { display_name: "Legacy", oq_type: null },
     ]);
   });
+
+  test("GET /leaderboard returns 400 for non-numeric page value", async () => {
+    const { app } = createTestApp();
+
+    const response = await app.request("/leaderboard?page=abc");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "invalid_pagination" });
+  });
+
+  test("GET /leaderboard returns 400 for level values outside the valid 1-6 range", async () => {
+    const { app } = createTestApp();
+
+    for (const level of ["0", "7", "-1", "99"]) {
+      const response = await app.request(`/leaderboard?level=${level}`);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "invalid_level" });
+    }
+  });
 });
