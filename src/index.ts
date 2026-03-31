@@ -4,8 +4,9 @@ import { corsMiddleware } from "./middleware/cors";
 import { authSendCodeLimiter, authVerifyLimiter, leaderboardLimiter } from "./middleware/rate-limit";
 import { createAuthRoutes } from "./routes/auth";
 import { createContactRoutes } from "./routes/contact";
-import { createOqRoutes } from "./routes/oq";
+import { createFingerprintRoutes } from "./routes/fingerprint";
 import { createLeaderboardRoutes } from "./routes/leaderboard";
+import { createOqRoutes } from "./routes/oq";
 
 const app = new Hono();
 
@@ -41,6 +42,7 @@ app.use("/api/leaderboard", leaderboardLimiter);
 app.route("/api/auth", createAuthRoutes(db));
 app.route("/api/contact", createContactRoutes(db));
 app.route("/api/oq", createOqRoutes(db));
+app.route("/api/oq/fingerprint", createFingerprintRoutes(db));
 app.route("/api/leaderboard", createLeaderboardRoutes(db));
 
 const port = Number.parseInt(process.env.PORT ?? "3100", 10);

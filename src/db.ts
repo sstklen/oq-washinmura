@@ -36,6 +36,7 @@ export function getDb(path?: string): Database {
       api_cost_monthly REAL,
       battle_record TEXT,
       fingerprint TEXT,
+      oq_type TEXT,
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -55,6 +56,15 @@ export function getDb(path?: string): Database {
       sent_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS oq_fingerprints (
+      id INTEGER PRIMARY KEY,
+      anonymous_id TEXT UNIQUE NOT NULL,
+      scores TEXT NOT NULL,
+      oq_type TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_oq_profiles_level
       ON oq_profiles(level);
 
@@ -66,14 +76,57 @@ export function getDb(path?: string): Database {
 
     CREATE INDEX IF NOT EXISTS idx_contacts_from_to
       ON contacts(from_user_id, to_oq_id);
+
+    CREATE INDEX IF NOT EXISTS idx_fingerprints_type
+      ON oq_fingerprints(oq_type);
+
+    CREATE INDEX IF NOT EXISTS idx_fingerprints_anon
+      ON oq_fingerprints(anonymous_id);
   `);
 
-  // 既有 DB migrate：加 fingerprint 欄位（已有就跳過）
-  try {
-    db.exec("ALTER TABLE oq_profiles ADD COLUMN fingerprint TEXT");
-  } catch {
-    // 欄位已存在，忽略
-  }
+  // 既有 DB migrate（已有就跳過）
+  try { db.exec("ALTER TABLE oq_profiles ADD COLUMN fingerprint TEXT"); } catch {}
+  try { db.exec("ALTER TABLE oq_profiles ADD COLUMN oq_type TEXT"); } catch {}
+
+  db.exec(`
+    UPDATE oq_profiles
+    SET oq_type = CASE LOWER(oq_type)
+      WHEN '統御型' THEN '統御型'
+      WHEN 'commander' THEN '統御型'
+      WHEN '放大型' THEN '放大型'
+      WHEN 'amplifier' THEN '放大型'
+      WHEN '防守型' THEN '防守型'
+      WHEN 'defender' THEN '防守型'
+      WHEN '全能型' THEN '全能型'
+      WHEN 'allrounder' THEN '全能型'
+      WHEN '混合型' THEN '混合型'
+      WHEN 'hybrid' THEN '混合型'
+      ELSE oq_type
+    END
+    WHERE oq_type IS NOT NULL;
+
+    UPDATE oq_profiles
+    SET oq_type = CASE LOWER(CAST(json_extract(fingerprint, '$.oq_type') AS TEXT))
+      WHEN '統御型' THEN '統御型'
+      WHEN 'commander' THEN '統御型'
+      WHEN '放大型' THEN '放大型'
+      WHEN 'amplifier' THEN '放大型'
+      WHEN '防守型' THEN '防守型'
+      WHEN 'defender' THEN '防守型'
+      WHEN '全能型' THEN '全能型'
+      WHEN 'allrounder' THEN '全能型'
+      WHEN '混合型' THEN '混合型'
+      WHEN 'hybrid' THEN '混合型'
+      ELSE NULL
+    END
+    WHERE oq_type IS NULL
+      AND fingerprint IS NOT NULL
+      AND json_valid(fingerprint)
+      AND json_extract(fingerprint, '$.oq_type') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_oq_profiles_oq_type
+      ON oq_profiles(oq_type);
+  `);
 
   return db;
 }

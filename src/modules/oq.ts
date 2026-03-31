@@ -9,8 +9,11 @@ export type BattleRecord = {
   total: number;
 };
 
+export type OqType = "統御型" | "放大型" | "防守型" | "全能型" | "混合型";
+
 // 五階 OQ 指紋（L1 量由其他欄位計算，這裡存 L2-L5）
 export type OqFingerprint = {
+  oq_type?: string | null;
   // L2 效
   cache_hit_rate: number;       // 快取命中率 %
   input_ratio: number;          // 指令佔比 %
@@ -80,9 +83,23 @@ type StoredOqProfileRow = {
   api_cost_monthly: number;
   battle_record: string | null;
   fingerprint: string | null;
+  oq_type: string | null;
 };
 
 import { HTML_TAG_PATTERN, hasField } from "../constants";
+
+const OQ_TYPE_ALIASES: Record<string, OqType> = {
+  "統御型": "統御型",
+  commander: "統御型",
+  "放大型": "放大型",
+  amplifier: "放大型",
+  "防守型": "防守型",
+  defender: "防守型",
+  "全能型": "全能型",
+  allrounder: "全能型",
+  "混合型": "混合型",
+  hybrid: "混合型",
+};
 
 export function calculateLevel(tokensMonthly: number): number {
   const dailyAverage = tokensMonthly / 30;
@@ -112,6 +129,22 @@ export function calculateLevel(tokensMonthly: number): number {
 
 function generateOqToken(): string {
   return `oq_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
+}
+
+export function normalizeOqType(value: string | null | undefined): OqType | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return OQ_TYPE_ALIASES[value.trim().toLowerCase()] ?? null;
+}
+
+function extractOqType(fingerprint: OqFingerprint | null | undefined): OqType | null {
+  if (!fingerprint) {
+    return null;
+  }
+
+  return normalizeOqType(fingerprint.oq_type ?? null);
 }
 
 function hasExistingProfile(db: Database, userId: number): boolean {
@@ -147,7 +180,9 @@ function getProfileByUserId(db: Database, userId: number): StoredOqProfileRow | 
         COALESCE(oq_profiles.contactable, 1) AS contactable,
         COALESCE(oq_profiles.tokens_monthly, 0) AS tokens_monthly,
         COALESCE(oq_profiles.api_cost_monthly, 0) AS api_cost_monthly,
-        oq_profiles.battle_record
+        oq_profiles.battle_record,
+        oq_profiles.fingerprint,
+        oq_profiles.oq_type
       FROM oq_profiles
       JOIN users ON users.id = oq_profiles.user_id
       WHERE oq_profiles.user_id = ?
@@ -168,7 +203,9 @@ function getProfileByToken(db: Database, oqToken: string): StoredOqProfileRow | 
         COALESCE(oq_profiles.contactable, 1) AS contactable,
         COALESCE(oq_profiles.tokens_monthly, 0) AS tokens_monthly,
         COALESCE(oq_profiles.api_cost_monthly, 0) AS api_cost_monthly,
-        oq_profiles.battle_record
+        oq_profiles.battle_record,
+        oq_profiles.fingerprint,
+        oq_profiles.oq_type
       FROM oq_profiles
       JOIN users ON users.id = oq_profiles.user_id
       WHERE oq_profiles.oq_token = ?
@@ -298,6 +335,7 @@ export function submitOq(
   const oqToken = generateOqToken();
 
   const fingerprint = data.fingerprint ?? null;
+  const oqType = extractOqType(fingerprint);
 
   db.query(`
     INSERT INTO oq_profiles (
@@ -308,8 +346,9 @@ export function submitOq(
       tokens_monthly,
       api_cost_monthly,
       battle_record,
-      fingerprint
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      fingerprint,
+      oq_type
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     userId,
     validated.oq_value,
@@ -319,6 +358,7 @@ export function submitOq(
     validated.api_cost_monthly,
     validated.battle_record === null ? null : JSON.stringify(validated.battle_record),
     fingerprint === null ? null : JSON.stringify(fingerprint),
+    oqType,
   );
 
   return {
@@ -362,9 +402,12 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
   const nextBattleRecord = hasField(data,"battle_record")
     ? (data.battle_record ?? null)
     : parseBattleRecord(existingProfile.battle_record);
-  const nextFingerprint = hasField(data,"fingerprint")
-    ? (data.fingerprint ?? null)
-    : null;
+  const nextFingerprintJson = hasField(data,"fingerprint")
+    ? (data.fingerprint == null ? null : JSON.stringify(data.fingerprint))
+    : existingProfile.fingerprint;
+  const nextOqType = hasField(data,"fingerprint")
+    ? extractOqType(data.fingerprint ?? null)
+    : existingProfile.oq_type;
   const nextLevel = calculateLevel(nextTokensMonthly);
 
   db.query(`
@@ -375,6 +418,7 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
       api_cost_monthly = ?,
       battle_record = ?,
       fingerprint = ?,
+      oq_type = ?,
       level = ?,
       updated_at = datetime('now')
     WHERE id = ?
@@ -383,7 +427,8 @@ export function updateOq(db: Database, data: UpdateOqInput): OqProfileSummary {
     nextTokensMonthly,
     nextApiCostMonthly,
     nextBattleRecord === null ? null : JSON.stringify(nextBattleRecord),
-    nextFingerprint === null ? null : JSON.stringify(nextFingerprint),
+    nextFingerprintJson,
+    nextOqType,
     nextLevel,
     existingProfile.id,
   );
@@ -444,7 +489,7 @@ export function updateSettings(
 
   db.transaction(() => {
     if (hasDisplayName) {
-      db.query("UPDATE users SET display_name = ? WHERE id = ?").run(data.display_name, userId);
+      db.query("UPDATE users SET display_name = ? WHERE id = ?").run(data.display_name as string, userId);
     }
 
     if (hasContactable) {

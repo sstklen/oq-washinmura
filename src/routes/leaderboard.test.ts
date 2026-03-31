@@ -13,6 +13,7 @@ type ProfileSeed = {
   display_name: string | null;
   email: string;
   level: number;
+  oq_type?: string | null;
   oq_token?: string;
   oq_value: number;
   tokens_monthly: number;
@@ -51,8 +52,9 @@ function seedProfiles(db: Database, profiles: ProfileSeed[]) {
       tokens_monthly,
       api_cost_monthly,
       battle_record,
+      oq_type,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (const profile of profiles) {
@@ -67,6 +69,7 @@ function seedProfiles(db: Database, profiles: ProfileSeed[]) {
       profile.tokens_monthly,
       profile.api_cost_monthly ?? 0,
       profile.battle_record,
+      profile.oq_type ?? null,
       profile.updated_at,
     );
   }
@@ -130,6 +133,7 @@ describe("createLeaderboardRoutes", () => {
       level_title: "矽谷新創規格 SV Startup Tier",
       tokens_monthly: 1200,
       battle_record: "12-1",
+      oq_type: null,
       updated_at: "2026-03-01T10:00:00.000Z",
     });
     expect(body.leaderboard[0].email).toBeUndefined();
@@ -323,5 +327,142 @@ describe("createLeaderboardRoutes", () => {
 
     expect(response.status).toBe(200);
     expect(text.includes("@")).toBe(false);
+  });
+
+  test("GET /leaderboard filters by a single oq_type", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "commander@example.com",
+        display_name: "Commander",
+        oq_value: 91000,
+        level: 6,
+        oq_type: "統御型",
+        tokens_monthly: 1000,
+        battle_record: "9-1",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
+      {
+        email: "amplifier@example.com",
+        display_name: "Amplifier",
+        oq_value: 86000,
+        level: 5,
+        oq_type: "放大型",
+        tokens_monthly: 900,
+        battle_record: "8-2",
+        updated_at: "2026-03-23T00:00:00.000Z",
+      },
+      {
+        email: "legacy@example.com",
+        display_name: "Legacy",
+        oq_value: 83000,
+        level: 5,
+        oq_type: null,
+        tokens_monthly: 800,
+        battle_record: "7-3",
+        updated_at: "2026-03-24T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard?oq_type=統御型");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.leaderboard).toHaveLength(1);
+    expect(body.leaderboard).toEqual([
+      expect.objectContaining({
+        display_name: "Commander",
+        oq_type: "統御型",
+      }),
+    ]);
+  });
+
+  test("GET /leaderboard filters by multiple oq_type values", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "commander@example.com",
+        display_name: "Commander",
+        oq_value: 91000,
+        level: 6,
+        oq_type: "統御型",
+        tokens_monthly: 1000,
+        battle_record: "9-1",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
+      {
+        email: "allrounder@example.com",
+        display_name: "Allrounder",
+        oq_value: 90000,
+        level: 6,
+        oq_type: "全能型",
+        tokens_monthly: 990,
+        battle_record: "9-0",
+        updated_at: "2026-03-23T00:00:00.000Z",
+      },
+      {
+        email: "defender@example.com",
+        display_name: "Defender",
+        oq_value: 88000,
+        level: 5,
+        oq_type: "防守型",
+        tokens_monthly: 950,
+        battle_record: "8-1",
+        updated_at: "2026-03-24T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard?oq_type=統御型,全能型");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.leaderboard.map((entry: { display_name: string; oq_type: string | null }) => ({
+      display_name: entry.display_name,
+      oq_type: entry.oq_type,
+    }))).toEqual([
+      { display_name: "Commander", oq_type: "統御型" },
+      { display_name: "Allrounder", oq_type: "全能型" },
+    ]);
+  });
+
+  test("GET /leaderboard without oq_type filter returns all rows including null oq_type", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "commander@example.com",
+        display_name: "Commander",
+        oq_value: 91000,
+        level: 6,
+        oq_type: "統御型",
+        tokens_monthly: 1000,
+        battle_record: "9-1",
+        updated_at: "2026-03-22T00:00:00.000Z",
+      },
+      {
+        email: "legacy@example.com",
+        display_name: "Legacy",
+        oq_value: 83000,
+        level: 5,
+        oq_type: null,
+        tokens_monthly: 800,
+        battle_record: "7-3",
+        updated_at: "2026-03-24T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.leaderboard.map((entry: { display_name: string; oq_type: string | null }) => ({
+      display_name: entry.display_name,
+      oq_type: entry.oq_type,
+    }))).toEqual([
+      { display_name: "Commander", oq_type: "統御型" },
+      { display_name: "Legacy", oq_type: null },
+    ]);
   });
 });
