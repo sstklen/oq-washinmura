@@ -149,5 +149,5 @@ export const leaderboardLimiter = createRateLimiter({
 export const defaultLimiter = createRateLimiter({
   windowMs: 60_000,
   max: 120,
-  keyFn: (c) => String(c.get("userId") ?? "anonymous"),
+  keyFn: getClientIp,
 });
