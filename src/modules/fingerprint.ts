@@ -84,7 +84,7 @@ function isValidScores(value: unknown): value is OqScores {
 
   return OQ_SCORE_KEYS.every((key) => {
     const score = (value as Record<OqScoreKey, unknown>)[key];
-    return typeof score === "number" && Number.isFinite(score);
+    return typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 10;
   });
 }
 
@@ -95,6 +95,10 @@ function validateSubmitFingerprintInput(data: SubmitFingerprintInput): {
 } {
   if (typeof data.anonymous_id !== "string" || data.anonymous_id.trim().length === 0) {
     throw new Error("missing_fields");
+  }
+
+  if (data.anonymous_id.trim().length > 200) {
+    throw new Error("anonymous_id_too_long");
   }
 
   if (!isValidScores(data.scores)) {

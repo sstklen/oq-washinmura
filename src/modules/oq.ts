@@ -228,14 +228,14 @@ function parseBattleRecord(value: string | null): BattleRecord | null {
 function validateOptionalOqFields(data: UpdateOqInput) {
   if (
     hasField(data,"oq_value") &&
-    (!Number.isInteger(data.oq_value) || (data.oq_value ?? 0) <= 0)
+    (!Number.isSafeInteger(data.oq_value) || (data.oq_value ?? 0) <= 0)
   ) {
     throw new Error("invalid_oq_value");
   }
 
   if (
     hasField(data,"tokens_monthly") &&
-    (!Number.isInteger(data.tokens_monthly) || (data.tokens_monthly ?? 0) < 0)
+    (!Number.isSafeInteger(data.tokens_monthly) || (data.tokens_monthly ?? 0) < 0)
   ) {
     throw new Error("invalid_tokens_monthly");
   }
@@ -292,11 +292,11 @@ function validateSubmission(data: SubmitOqInput): {
     throw new Error("missing_fields");
   }
 
-  if (!Number.isInteger(data.oq_value) || data.oq_value <= 0) {
+  if (!Number.isSafeInteger(data.oq_value) || data.oq_value <= 0) {
     throw new Error("invalid_oq_value");
   }
 
-  if (!Number.isInteger(data.tokens_monthly) || data.tokens_monthly < 0) {
+  if (!Number.isSafeInteger(data.tokens_monthly) || data.tokens_monthly < 0) {
     throw new Error("invalid_tokens_monthly");
   }
 

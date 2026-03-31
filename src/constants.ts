@@ -15,10 +15,11 @@ export const HTML_TAG_PATTERN = /<[^>]*>/;
 export const OQ_TYPES = ["統御型", "放大型", "防守型", "全能型", "混合型"] as const;
 export type OqType = (typeof OQ_TYPES)[number];
 
-// 正整數驗證（路由 param 用）
+// 正整數驗證（路由 param 用，嚴格：'1abc' → null）
 export function parsePositiveInt(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
   const n = Number.parseInt(value, 10);
-  return Number.isNaN(n) || n < 1 ? null : n;
+  return n < 1 || !Number.isSafeInteger(n) ? null : n;
 }
 
 // 通用 hasField 檢查（取代冗長的 Object.prototype.hasOwnProperty.call）

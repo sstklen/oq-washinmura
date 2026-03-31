@@ -15,6 +15,7 @@ export function getDb(path?: string): Database {
 
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec("PRAGMA foreign_keys = ON;");
+  db.exec("PRAGMA busy_timeout = 5000;");
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY,
@@ -84,9 +85,11 @@ export function getDb(path?: string): Database {
       ON oq_fingerprints(anonymous_id);
   `);
 
-  // 既有 DB migrate（已有就跳過）
-  try { db.exec("ALTER TABLE oq_profiles ADD COLUMN fingerprint TEXT"); } catch {}
-  try { db.exec("ALTER TABLE oq_profiles ADD COLUMN oq_type TEXT"); } catch {}
+  // 既有 DB migrate（duplicate column 忽略，其他錯誤 log）
+  for (const col of ["fingerprint TEXT", "oq_type TEXT"]) {
+    try { db.exec(`ALTER TABLE oq_profiles ADD COLUMN ${col}`); }
+    catch (e) { if (!(e instanceof Error && e.message.includes("duplicate"))) console.error(`[db migrate] ${col}:`, e); }
+  }
 
   db.exec(`
     UPDATE oq_profiles
