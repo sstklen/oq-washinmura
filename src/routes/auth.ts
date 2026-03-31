@@ -38,8 +38,10 @@ export function createAuthRoutes(db: Database): Hono {
       return c.json({ error: "missing_fields" }, 400);
     }
 
+    const trimmedCode = body.code.trim();
+
     try {
-      const result = await verifyCode(db, body.email, body.code);
+      const result = await verifyCode(db, body.email, trimmedCode);
       return c.json(result);
     } catch (error) {
       if (error instanceof Error) {
