@@ -27,7 +27,8 @@ export function normalizeEmail(email: string): string {
 }
 
 export function isValidEmail(email: string): boolean {
-  return EMAIL_PATTERN.test(normalizeEmail(email));
+  const normalized = normalizeEmail(email);
+  return normalized.length <= 254 && EMAIL_PATTERN.test(normalized);
 }
 
 export function setEmailSender(sender: EmailSender | null): void {
