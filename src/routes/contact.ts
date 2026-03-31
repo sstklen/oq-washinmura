@@ -40,7 +40,7 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
         message: typeof body.message === "string" ? body.message : "",
       });
 
-      return c.json(result);
+      return c.json({ ok: true, message: "已發送聯絡信" });
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "oq_not_found" || error.message === "user_not_found") {
@@ -49,6 +49,10 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
 
         if (forbiddenErrors.has(error.message)) {
           return c.json({ error: error.message }, 403);
+        }
+
+        if (error.message === "message_too_long") {
+          return c.json({ error: error.message, max: 2000 }, 400);
         }
 
         if (badRequestErrors.has(error.message) || contactBadRequestErrors.has(error.message)) {

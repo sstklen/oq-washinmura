@@ -61,7 +61,7 @@ function parseLevels(value: string | undefined): number[] {
   return value
     .split(",")
     .map((part) => Number.parseInt(part.trim(), 10))
-    .filter((level) => Number.isInteger(level));
+    .filter((level) => Number.isInteger(level) && level >= 1 && level <= 6);
 }
 
 function parseOqTypes(value: string | undefined): string[] {

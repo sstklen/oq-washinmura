@@ -107,7 +107,7 @@ describe("createContactRoutes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    expect(await response.json()).toEqual({ ok: true, message: "已發送聯絡信" });
   });
 
   test("POST /api/contact/3 returns 401 without JWT", async () => {

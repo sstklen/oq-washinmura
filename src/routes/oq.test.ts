@@ -322,6 +322,6 @@ describe("createOqRoutes", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "display_name_too_long" });
+    expect(await response.json()).toEqual({ error: "display_name_too_long", max: 30 });
   });
 });

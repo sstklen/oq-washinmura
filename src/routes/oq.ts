@@ -136,6 +136,10 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
           return c.json({ error: error.message }, 404);
         }
 
+        if (error.message === "display_name_too_long") {
+          return c.json({ error: error.message, max: 30 }, 400);
+        }
+
         if (badRequestErrors.has(error.message)) {
           return c.json({ error: error.message }, 400);
         }

@@ -260,7 +260,7 @@ function validateOptionalOqFields(data: UpdateOqInput) {
 }
 
 function validateDisplayName(displayName: string) {
-  if (displayName.length === 0) {
+  if (displayName.trim().length === 0) {
     throw new Error("display_name_empty");
   }
 
