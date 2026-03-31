@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { OQ_TYPES } from "../constants";
+import { normalizeOqType } from "./oq";
 
 const OQ_SCORE_KEYS = [
   "vision",
@@ -106,19 +107,22 @@ function validateSubmitFingerprintInput(data: SubmitFingerprintInput): {
     throw new Error("invalid_scores");
   }
 
+  let normalizedOqType: string | undefined;
   if (data.oq_type !== undefined) {
     if (typeof data.oq_type !== "string" || data.oq_type.length === 0) {
       throw new Error("invalid_oq_type");
     }
-    if (!(OQ_TYPES as readonly string[]).includes(data.oq_type)) {
+    const resolved = normalizeOqType(data.oq_type);
+    if (!resolved) {
       throw new Error("invalid_oq_type");
     }
+    normalizedOqType = resolved;
   }
 
   return {
     anonymous_id: data.anonymous_id.trim(),
     scores: data.scores,
-    oq_type: data.oq_type,
+    oq_type: normalizedOqType,
   };
 }
 
@@ -265,13 +269,17 @@ export function matchFingerprints(db: Database, id: number, limit = 5): MatchRes
     return [];
   }
 
+  // 限制掃描量：最多 1000 筆（按最近更新排序，優先匹配活躍用戶）
+  const MAX_SCAN = 1000;
   const rows = db
     .query(`
       SELECT id, anonymous_id, scores, oq_type, created_at, updated_at
       FROM oq_fingerprints
       WHERE id != ?
+      ORDER BY updated_at DESC
+      LIMIT ?
     `)
-    .all(id) as StoredFingerprintRow[];
+    .all(id, MAX_SCAN) as StoredFingerprintRow[];
 
   return rows
     .map((row) => {
