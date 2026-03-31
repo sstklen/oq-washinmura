@@ -31,19 +31,20 @@ afterEach(() => {
 });
 
 describe("sendEmail", () => {
-  test("falls back to console.log when SES credentials are missing", async () => {
-    const logs: string[] = [];
+  test("falls back to console.warn (no body) when no transport configured", async () => {
+    const warns: string[] = [];
 
     delete process.env.OQ_AWS_ACCESS_KEY_ID;
     delete process.env.OQ_AWS_SECRET_ACCESS_KEY;
-    console.log = (...args) => {
-      logs.push(args.join(" "));
+    delete process.env.OQ_RESEND_API_KEY;
+    console.warn = (...args) => {
+      warns.push(args.join(" "));
     };
 
     await expect(sendEmail("to@example.com", "Subject", "Body")).resolves.toBeUndefined();
-    expect(logs).toEqual([
-      "[email] to=to@example.com subject=Subject body=Body",
-    ]);
+    expect(warns[0]).toContain("[email-dev]");
+    expect(warns[0]).toContain("to=to@example.com");
+    expect(warns[0]).not.toContain("Body"); // 不 log 敏感內容
   });
 
   test("returns void when using an injected email sender", async () => {

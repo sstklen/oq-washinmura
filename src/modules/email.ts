@@ -157,5 +157,6 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
     return;
   }
 
-  console.log(`[email] to=${to} subject=${subject} body=${body}`);
+  // 開發模式：log 但不 log 敏感內容（驗證碼/訊息）
+  console.warn(`[email-dev] no transport configured. to=${to} subject=${subject} (body hidden)`);
 }
