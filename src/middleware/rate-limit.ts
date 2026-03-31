@@ -82,12 +82,6 @@ async function applyRateLimit(
 }
 
 async function getJsonField(c: Context, fieldName: string): Promise<string> {
-  const contentType = c.req.header("content-type") ?? "";
-
-  if (!contentType.toLowerCase().includes("application/json")) {
-    return "anonymous";
-  }
-
   try {
     const body = await c.req.json<Record<string, unknown>>();
     const value = body[fieldName];
@@ -99,13 +93,19 @@ async function getJsonField(c: Context, fieldName: string): Promise<string> {
 }
 
 function getClientIp(c: Context): string {
+  // Cloudflare 設的真實 IP（不可被客戶端偽造）
+  const cfIp = c.req.header("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+
+  // Caddy/nginx 設的
+  const realIp = c.req.header("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  // fallback（可被偽造，但有 CF 就不會走到這）
   const forwardedFor = c.req.header("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0]?.trim() ?? "unknown";
 
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() ?? "unknown";
-  }
-
-  return c.req.header("x-real-ip")?.trim() || "unknown";
+  return "unknown";
 }
 
 export function createRateLimiter(options: RateLimitOptions): MiddlewareHandler {

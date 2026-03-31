@@ -85,48 +85,37 @@ export function getDb(path?: string): Database {
       ON oq_fingerprints(anonymous_id);
   `);
 
-  // 既有 DB migrate（duplicate column 忽略，其他錯誤 log）
-  for (const col of ["fingerprint TEXT", "oq_type TEXT"]) {
-    try { db.exec(`ALTER TABLE oq_profiles ADD COLUMN ${col}`); }
-    catch (e) { if (!(e instanceof Error && e.message.includes("duplicate"))) console.error(`[db migrate] ${col}:`, e); }
+  // Migration 系統 — 每個只跑一次
+  db.exec("CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TEXT DEFAULT (datetime('now')))");
+
+  function runMigration(name: string, sql: string) {
+    const exists = db.query("SELECT 1 FROM _migrations WHERE name = ?").get(name);
+    if (exists) return;
+    try {
+      db.exec(sql);
+      db.query("INSERT INTO _migrations (name) VALUES (?)").run(name);
+    } catch (e) { console.error(`[migration ${name}]`, e); }
   }
 
-  db.exec(`
-    UPDATE oq_profiles
-    SET oq_type = CASE LOWER(oq_type)
-      WHEN '統御型' THEN '統御型'
-      WHEN 'commander' THEN '統御型'
-      WHEN '放大型' THEN '放大型'
-      WHEN 'amplifier' THEN '放大型'
-      WHEN '防守型' THEN '防守型'
-      WHEN 'defender' THEN '防守型'
-      WHEN '全能型' THEN '全能型'
-      WHEN 'allrounder' THEN '全能型'
-      WHEN '混合型' THEN '混合型'
-      WHEN 'hybrid' THEN '混合型'
-      ELSE oq_type
-    END
+  runMigration("001_add_fingerprint_col", "ALTER TABLE oq_profiles ADD COLUMN fingerprint TEXT");
+  runMigration("002_add_oq_type_col", "ALTER TABLE oq_profiles ADD COLUMN oq_type TEXT");
+  runMigration("003_normalize_oq_type", `
+    UPDATE oq_profiles SET oq_type = CASE LOWER(oq_type)
+      WHEN 'commander' THEN '統御型' WHEN 'amplifier' THEN '放大型'
+      WHEN 'defender' THEN '防守型' WHEN 'allrounder' THEN '全能型'
+      WHEN 'hybrid' THEN '混合型' ELSE oq_type END
     WHERE oq_type IS NOT NULL;
+    UPDATE oq_profiles SET oq_type = CASE LOWER(CAST(json_extract(fingerprint, '$.oq_type') AS TEXT))
+      WHEN '統御型' THEN '統御型' WHEN 'commander' THEN '統御型'
+      WHEN '放大型' THEN '放大型' WHEN 'amplifier' THEN '放大型'
+      WHEN '防守型' THEN '防守型' WHEN 'defender' THEN '防守型'
+      WHEN '全能型' THEN '全能型' WHEN 'allrounder' THEN '全能型'
+      WHEN '混合型' THEN '混合型' WHEN 'hybrid' THEN '混合型' ELSE NULL END
+    WHERE oq_type IS NULL AND fingerprint IS NOT NULL AND json_valid(fingerprint)
+      AND json_extract(fingerprint, '$.oq_type') IS NOT NULL
+  `);
 
-    UPDATE oq_profiles
-    SET oq_type = CASE LOWER(CAST(json_extract(fingerprint, '$.oq_type') AS TEXT))
-      WHEN '統御型' THEN '統御型'
-      WHEN 'commander' THEN '統御型'
-      WHEN '放大型' THEN '放大型'
-      WHEN 'amplifier' THEN '放大型'
-      WHEN '防守型' THEN '防守型'
-      WHEN 'defender' THEN '防守型'
-      WHEN '全能型' THEN '全能型'
-      WHEN 'allrounder' THEN '全能型'
-      WHEN '混合型' THEN '混合型'
-      WHEN 'hybrid' THEN '混合型'
-      ELSE NULL
-    END
-    WHERE oq_type IS NULL
-      AND fingerprint IS NOT NULL
-      AND json_valid(fingerprint)
-      AND json_extract(fingerprint, '$.oq_type') IS NOT NULL;
-
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_oq_profiles_oq_type
       ON oq_profiles(oq_type);
   `);
