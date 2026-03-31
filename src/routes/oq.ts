@@ -43,7 +43,7 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
           oq_profiles.id AS oq_id,
           COALESCE(users.display_name, 'Anonymous') AS display_name,
           oq_profiles.oq_value,
-          oq_profiles.level,
+          COALESCE(oq_profiles.level, 1) AS level,
           oq_profiles.tokens_monthly,
           oq_profiles.battle_record,
           oq_profiles.updated_at

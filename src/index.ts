@@ -10,12 +10,15 @@ import { createOqRoutes } from "./routes/oq";
 
 const app = new Hono();
 
-// 全域 error handler — 壞 JSON、未捕獲 throw 都回 JSON 不回 500 裸文字
+// 全域 error handler — 壞 JSON、TypeError（body=null）、未捕獲 throw
 app.onError((err, c) => {
   if (err instanceof SyntaxError && err.message.includes("JSON")) {
     return c.json({ error: "invalid_json" }, 400);
   }
-  console.error("[unhandled]", err);
+  if (err instanceof TypeError && (err.message.includes("not an object") || err.message.includes("Cannot read"))) {
+    return c.json({ error: "invalid_request_body" }, 400);
+  }
+  console.error("[unhandled]", err.message);
   return c.json({ error: "internal_server_error" }, 500);
 });
 

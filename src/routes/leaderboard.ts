@@ -155,7 +155,7 @@ export function createLeaderboardRoutes(db: Database): Hono {
           oq_profiles.id AS oq_id,
           COALESCE(users.display_name, 'Anonymous') AS display_name,
           oq_profiles.oq_value,
-          oq_profiles.level,
+          COALESCE(oq_profiles.level, 1) AS level,
           oq_profiles.oq_type,
           oq_profiles.tokens_monthly,
           oq_profiles.battle_record,
