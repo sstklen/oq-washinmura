@@ -17,6 +17,7 @@ type SubmitFingerprintBody = {
 
 const badRequestErrors = new Set([
   "missing_fields",
+  "anonymous_id_too_long",
   "invalid_scores",
   "invalid_oq_type",
 ]);
