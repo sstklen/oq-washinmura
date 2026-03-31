@@ -111,7 +111,11 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
           return c.json({ error: error.message }, 401);
         }
 
-        if (error.message === "oq_not_found" || error.message === "user_not_found") {
+        if (error.message === "oq_not_found") {
+          return c.json({ error: error.message, hint: "use POST /api/oq/submit first" }, 404);
+        }
+
+        if (error.message === "user_not_found") {
           return c.json({ error: error.message }, 404);
         }
 
@@ -132,7 +136,11 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
       return c.json({ settings });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "oq_not_found" || error.message === "user_not_found") {
+        if (error.message === "oq_not_found") {
+          return c.json({ error: error.message, hint: "use POST /api/oq/submit first" }, 404);
+        }
+
+        if (error.message === "user_not_found") {
           return c.json({ error: error.message }, 404);
         }
 

@@ -141,7 +141,7 @@ describe("verifyCode", () => {
     const result = await verifyCode(db, "returning@example.com", authCode!.code);
     const userRow = getUserByEmail(db, "returning@example.com");
 
-    expect(result.user.id).toBe(userRow?.id);
+    expect(result.user.id).toBe(userRow!.id);
     expect(Date.parse(userRow!.last_login_at)).toBeGreaterThan(Date.parse(previousLoginAt));
   });
 });

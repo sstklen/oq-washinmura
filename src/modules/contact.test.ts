@@ -50,9 +50,9 @@ function createOqProfile(
         tokens_monthly,
         api_cost_monthly
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(options?.id, userId, 88_000, `oq_test_${userId}`, 2, contactable, 300_000_000, 100);
+    `).run(options!.id!, userId, 88_000, `oq_test_${userId}`, 2, contactable, 300_000_000, 100);
 
-    return options.id as number;
+    return options!.id!;
   }
 
   const result = db.query(`
