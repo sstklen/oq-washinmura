@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
+import { parsePositiveInt } from "../constants";
 import {
   ensureFingerprintTable,
   getFingerprint,
@@ -40,9 +41,9 @@ export function createFingerprintRoutes(db: Database): Hono {
   });
 
   app.get("/match/:id", (c) => {
-    const id = Number.parseInt(c.req.param("id"), 10);
+    const id = parsePositiveInt(c.req.param("id"));
 
-    if (Number.isNaN(id) || id < 1) {
+    if (id === null) {
       return c.json({ error: "invalid_fingerprint_id" }, 400);
     }
 
@@ -58,9 +59,9 @@ export function createFingerprintRoutes(db: Database): Hono {
   });
 
   app.get("/:id", (c) => {
-    const id = Number.parseInt(c.req.param("id"), 10);
+    const id = parsePositiveInt(c.req.param("id"));
 
-    if (Number.isNaN(id) || id < 1) {
+    if (id === null) {
       return c.json({ error: "invalid_fingerprint_id" }, 400);
     }
 

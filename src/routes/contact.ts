@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { Hono } from "hono";
+import { parsePositiveInt } from "../constants";
 import { authGuard } from "../middleware/auth-guard";
 import { sendContact } from "../modules/contact";
 
@@ -24,9 +25,9 @@ export function createContactRoutes(db: Database): Hono<{ Variables: { userId: n
   const app = new Hono<{ Variables: { userId: number } }>();
 
   app.post("/:oqId", authGuard, async (c) => {
-    const oqId = Number.parseInt(c.req.param("oqId"), 10);
+    const oqId = parsePositiveInt(c.req.param("oqId"));
 
-    if (!Number.isInteger(oqId) || oqId <= 0) {
+    if (oqId === null) {
       return c.json({ error: "invalid_oq_id" }, 400);
     }
 

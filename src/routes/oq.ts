@@ -24,17 +24,16 @@ const badRequestErrors = new Set([
   "no_fields",
 ]);
 
-import { LEVEL_TITLES } from "../constants";
+import { LEVEL_TITLES, parsePositiveInt } from "../constants";
 
 export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number } }> {
   const app = new Hono<{ Variables: { userId: number } }>();
 
   // SPEC-12: 單人 OQ 查詢（公開，不需登入）
   app.get("/profile/:oqId", (c) => {
-    const oqIdStr = c.req.param("oqId");
-    const oqId = Number.parseInt(oqIdStr, 10);
+    const oqId = parsePositiveInt(c.req.param("oqId"));
 
-    if (Number.isNaN(oqId) || oqId < 1) {
+    if (oqId === null) {
       return c.json({ error: "invalid_oq_id" }, 400);
     }
 
