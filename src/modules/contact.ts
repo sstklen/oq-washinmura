@@ -58,6 +58,7 @@ function getRecentContactCount(db: Database, fromUserId: number, toOqId: number)
       FROM contacts
       WHERE from_user_id = ?
         AND to_oq_id = ?
+        AND status = 'sent'
         AND sent_at > datetime('now', '-24 hours')
     `)
     .get(fromUserId, toOqId) as CountRow;

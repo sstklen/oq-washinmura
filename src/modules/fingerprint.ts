@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { OQ_TYPES } from "../constants";
 
 const OQ_SCORE_KEYS = [
   "vision",
@@ -105,8 +106,13 @@ function validateSubmitFingerprintInput(data: SubmitFingerprintInput): {
     throw new Error("invalid_scores");
   }
 
-  if (data.oq_type !== undefined && (typeof data.oq_type !== "string" || data.oq_type.length === 0)) {
-    throw new Error("invalid_oq_type");
+  if (data.oq_type !== undefined) {
+    if (typeof data.oq_type !== "string" || data.oq_type.length === 0) {
+      throw new Error("invalid_oq_type");
+    }
+    if (!(OQ_TYPES as readonly string[]).includes(data.oq_type)) {
+      throw new Error("invalid_oq_type");
+    }
   }
 
   return {

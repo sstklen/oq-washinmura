@@ -233,32 +233,32 @@ describe("matchFingerprints", () => {
     const source = submitFingerprint(db, {
       anonymous_id: "anon-source",
       scores: createUniformScores(2),
-      oq_type: "architect",
+      oq_type: "混合型",
     });
 
     submitFingerprint(db, {
       anonymous_id: "anon-top",
       scores: createUniformScores(8),
-      oq_type: "operator",
+      oq_type: "全能型",
     });
     submitFingerprint(db, {
       anonymous_id: "anon-second",
       scores: createUniformScores(6, { risk: 5 }),
-      oq_type: "builder",
+      oq_type: "防守型",
     });
 
     expect(matchFingerprints(db, source.id)).toEqual([
       {
         id: 2,
         anonymous_id: "anon-top",
-        oq_type: "operator",
+        oq_type: "全能型",
         complement_score: 8,
         is_perfect: true,
       },
       {
         id: 3,
         anonymous_id: "anon-second",
-        oq_type: "builder",
+        oq_type: "防守型",
         complement_score: 5.92,
         is_perfect: false,
       },

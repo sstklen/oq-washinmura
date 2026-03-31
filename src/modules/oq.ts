@@ -464,7 +464,7 @@ export function updateSettings(
   }
 
   if (hasContactable && typeof data.contactable !== "boolean") {
-    throw new Error("no_fields");
+    throw new Error("invalid_contactable");
   }
 
   const userRow = db

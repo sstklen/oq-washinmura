@@ -151,9 +151,9 @@ describe("createFingerprintRoutes", () => {
 
   test("GET /api/oq/fingerprint/match/1 returns 200 with matches", async () => {
     const { app, db } = createTestApp();
-    insertFingerprint(db, "anon-source", "architect", createUniformScores(2));
-    insertFingerprint(db, "anon-top", "operator", createUniformScores(8));
-    insertFingerprint(db, "anon-second", "builder", createUniformScores(6, { risk: 5 }));
+    insertFingerprint(db, "anon-source", "混合型", createUniformScores(2));
+    insertFingerprint(db, "anon-top", "全能型", createUniformScores(8));
+    insertFingerprint(db, "anon-second", "防守型", createUniformScores(6, { risk: 5 }));
 
     const response = await app.request("/api/oq/fingerprint/match/1");
     const body = await response.json();
@@ -163,14 +163,14 @@ describe("createFingerprintRoutes", () => {
       {
         id: 2,
         anonymous_id: "anon-top",
-        oq_type: "operator",
+        oq_type: "全能型",
         complement_score: 8,
         is_perfect: true,
       },
       {
         id: 3,
         anonymous_id: "anon-second",
-        oq_type: "builder",
+        oq_type: "防守型",
         complement_score: 5.92,
         is_perfect: false,
       },
