@@ -268,12 +268,8 @@ function validateDisplayName(displayName: string) {
     throw new Error("display_name_too_long");
   }
 
-  if (HTML_TAG_PATTERN.test(displayName)) {
-    throw new Error("display_name_invalid");
-  }
-
-  // 擋 XSS event handler 注入（onmouseover= 等）
-  if (/on\w+\s*=/i.test(displayName)) {
+  // 白名單：中日韓文字 + 英數 + 空白 + 底線 + 連字號 + 句點（SPEC-06）
+  if (!/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}a-zA-Z0-9\s_\-\.]+$/u.test(displayName)) {
     throw new Error("display_name_invalid");
   }
 }
