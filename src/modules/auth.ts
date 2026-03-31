@@ -73,34 +73,39 @@ export async function verifyCode(
   code: string,
 ): Promise<{ token: string; user: AuthUser }> {
   const normalizedEmail = normalizeEmail(email);
-  const authCode = db
-    .query("SELECT email, code, expires_at FROM auth_codes WHERE email = ? AND code = ?")
-    .get(normalizedEmail, code) as AuthCodeRow | null;
 
-  if (!authCode) {
-    throw new Error("invalid_code");
-  }
+  // transaction 包住：驗碼 + 刪碼 + 建/更新 user（原子性）
+  const user = db.transaction(() => {
+    const authCode = db
+      .query("SELECT email, code, expires_at FROM auth_codes WHERE email = ? AND code = ?")
+      .get(normalizedEmail, code) as AuthCodeRow | null;
 
-  if (Date.parse(authCode.expires_at) <= Date.now()) {
-    throw new Error("code_expired");
-  }
+    if (!authCode) {
+      throw new Error("invalid_code");
+    }
 
-  db.query("DELETE FROM auth_codes WHERE email = ? AND code = ?").run(normalizedEmail, code);
+    if (Date.parse(authCode.expires_at) <= Date.now()) {
+      throw new Error("code_expired");
+    }
 
-  const lastLoginAt = new Date().toISOString();
-  let user = getUserByEmail(db, normalizedEmail);
+    db.query("DELETE FROM auth_codes WHERE email = ?").run(normalizedEmail);
 
-  if (user) {
-    db.query("UPDATE users SET last_login_at = ? WHERE id = ?").run(lastLoginAt, user.id);
-  } else {
-    db.query("INSERT INTO users (email, last_login_at) VALUES (?, ?)").run(normalizedEmail, lastLoginAt);
-  }
+    const lastLoginAt = new Date().toISOString();
+    let user = getUserByEmail(db, normalizedEmail);
 
-  user = getUserByEmail(db, normalizedEmail);
+    if (user) {
+      db.query("UPDATE users SET last_login_at = ? WHERE id = ?").run(lastLoginAt, user.id);
+    } else {
+      db.query("INSERT INTO users (email, last_login_at) VALUES (?, ?)").run(normalizedEmail, lastLoginAt);
+      user = getUserByEmail(db, normalizedEmail);
+    }
 
-  if (!user) {
-    throw new Error("user_not_found");
-  }
+    if (!user) {
+      throw new Error("user_not_found");
+    }
+
+    return user;
+  })();
 
   const token = await createAuthToken({
     user_id: user.id,
