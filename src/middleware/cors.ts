@@ -21,9 +21,9 @@ function resolveOrigin(origin: string): string | null {
   }
 
   // file:// 開的本機 HTML 報告，origin 是 "null"（字串）
-  // 回 "null" 而不是 "*"，限縮信任面
+  // 生產環境不放行 null origin（防 CSRF）
   if (origin === "null") {
-    return "null";
+    return isProduction() ? "" : "null";
   }
 
   if (!isProduction() && localhostOriginPattern.test(origin)) {
