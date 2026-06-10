@@ -3,14 +3,11 @@ import { Hono } from "hono";
 import { LEVEL_TITLES } from "../constants";
 import { normalizeOqType } from "../modules/oq";
 
-function parseBattleRecordSafe(value: string | null): unknown {
-  if (!value) return null;
-  try { return JSON.parse(value); } catch { return value; }
-}
-
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 const DEFAULT_PAGE = 1;
+const DEFAULT_TOP_CONTRIBUTORS_LIMIT = 10;
+const MAX_TOP_CONTRIBUTORS_LIMIT = 100;
 
 type LeaderboardRow = {
   battle_record: string | null;
@@ -21,6 +18,23 @@ type LeaderboardRow = {
   oq_value: number;
   tokens_monthly: number | null;
   updated_at: string | null;
+};
+
+export type TopContributor = {
+  user_id: number;
+  oq_id: number;
+  display_name: string;
+  total_edits: number;
+  total_commits: number;
+  total_contribution: number;
+};
+
+type TopContributorRow = {
+  user_id: number;
+  oq_id: number;
+  display_name: string;
+  total_edits: number;
+  total_commits: number;
 };
 
 function parseInteger(value: string | undefined): number | null {
@@ -82,7 +96,7 @@ function parseOqTypes(value: string | undefined): string[] {
   return Array.from(new Set(oqTypes));
 }
 
-function buildWhereClause(levels: number[], min: number | null, max: number | null, oqTypes: string[]) {
+function buildWhereClause(levels: number[], min: number | null, max: number | null, oqTypes: string[], search?: string) {
   const clauses: string[] = [];
   const params: Array<number | string> = [];
 
@@ -106,9 +120,75 @@ function buildWhereClause(levels: number[], min: number | null, max: number | nu
     params.push(...oqTypes);
   }
 
+  if (search && search.trim().length > 0) {
+    clauses.push("users.display_name LIKE ?");
+    params.push(`%${search.trim()}%`);
+  }
+
   return {
     params,
     sql: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+  };
+}
+
+export function getTopContributors(db: Database, limit: number): TopContributor[] {
+  if (!Number.isInteger(limit) || limit < 1) {
+    return [];
+  }
+
+  const normalizedLimit = Math.min(limit, MAX_TOP_CONTRIBUTORS_LIMIT);
+
+  const rows = db.query(`
+    SELECT
+      users.id AS user_id,
+      COALESCE(users.display_name, 'Anonymous') AS display_name,
+      oq_profiles.id AS oq_id,
+      CASE
+        WHEN json_valid(oq_profiles.battle_record) THEN COALESCE(
+          CAST(json_extract(oq_profiles.battle_record, '$.edits') AS INTEGER),
+          0
+        )
+        ELSE 0
+      END AS total_edits,
+      CASE
+        WHEN json_valid(oq_profiles.battle_record) THEN COALESCE(
+          CAST(json_extract(oq_profiles.battle_record, '$.commits') AS INTEGER),
+          0
+        )
+        ELSE 0
+      END AS total_commits
+    FROM oq_profiles
+    INNER JOIN users ON users.id = oq_profiles.user_id
+    ORDER BY (total_edits + total_commits) DESC, oq_profiles.id ASC
+    LIMIT ?
+  `).all(normalizedLimit) as TopContributorRow[];
+
+  return rows.map((row) => ({
+    ...row,
+    total_contribution: row.total_edits + row.total_commits,
+  }));
+}
+
+export type ApiStats = {
+  total_users: number;
+  total_submissions: number;
+  avg_oq_score: number;
+};
+
+export function getApiStats(db: Database): ApiStats {
+  const row = db.query(`
+    SELECT
+      COUNT(*) AS total_submissions,
+      COUNT(DISTINCT users.id) AS total_users,
+      COALESCE(AVG(oq_profiles.oq_value), 0) AS avg_oq_score
+    FROM oq_profiles
+    INNER JOIN users ON users.id = oq_profiles.user_id
+  `).get() as ApiStats;
+
+  return {
+    total_users: row.total_users,
+    total_submissions: row.total_submissions,
+    avg_oq_score: row.avg_oq_score,
   };
 }
 
@@ -142,8 +222,9 @@ export function createLeaderboardRoutes(db: Database): Hono {
       return c.json({ error: "invalid_level" }, 400);
     }
 
+    const search = c.req.query("search");
     const oqTypes = parseOqTypes(oqTypeQuery);
-    const { params, sql: whereClause } = buildWhereClause(levels, min, max, oqTypes);
+    const { params, sql: whereClause } = buildWhereClause(levels, min, max, oqTypes, search);
     const offset = (page - 1) * limit;
 
     const countQuery = db.query(
@@ -195,5 +276,59 @@ export function createLeaderboardRoutes(db: Database): Hono {
     });
   });
 
+  // GET /stats — 社群概覽統計
+  app.get("/stats", (c) => {
+    const summary = db.query(`
+      SELECT
+        COUNT(*) AS total_users,
+        COALESCE(AVG(oq_value), 0) AS avg_oq,
+        COALESCE(MAX(oq_value), 0) AS max_oq,
+        COALESCE(MIN(oq_value), 0) AS min_oq
+      FROM oq_profiles
+      INNER JOIN users ON users.id = oq_profiles.user_id
+    `).get() as { total_users: number; avg_oq: number; max_oq: number; min_oq: number };
+
+    const levelRows = db.query(`
+      SELECT COALESCE(level, 1) AS level, COUNT(*) AS count
+      FROM oq_profiles
+      GROUP BY COALESCE(level, 1)
+      ORDER BY level ASC
+    `).all() as Array<{ level: number; count: number }>;
+
+    const typeRows = db.query(`
+      SELECT oq_type, COUNT(*) AS count
+      FROM oq_profiles
+      WHERE oq_type IS NOT NULL
+      GROUP BY oq_type
+      ORDER BY count DESC
+    `).all() as Array<{ oq_type: string; count: number }>;
+
+    const byLevel: Record<string, number> = {};
+    for (const row of levelRows) {
+      byLevel[String(row.level)] = row.count;
+    }
+
+    const byType: Record<string, number> = {};
+    for (const row of typeRows) {
+      byType[row.oq_type] = row.count;
+    }
+
+    return c.json({
+      stats: {
+        total_users: summary.total_users,
+        avg_oq: Math.round(summary.avg_oq),
+        max_oq: summary.max_oq,
+        min_oq: summary.min_oq,
+        by_level: byLevel,
+        by_type: byType,
+      },
+    });
+  });
+
   return app;
+}
+
+function parseBattleRecordSafe(value: string | null): unknown {
+  if (!value) return null;
+  try { return JSON.parse(value); } catch { return value; }
 }

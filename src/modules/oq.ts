@@ -86,7 +86,7 @@ type StoredOqProfileRow = {
   oq_type: string | null;
 };
 
-import { HTML_TAG_PATTERN, hasField } from "../constants";
+import { HTML_TAG_PATTERN, hasField, validateBattleRecord } from "../constants";
 
 const OQ_TYPE_ALIASES: Record<string, OqType> = {
   "統御型": "統御型",
@@ -252,10 +252,12 @@ function validateOptionalOqFields(data: UpdateOqInput) {
   if (
     hasField(data,"battle_record") &&
     data.battle_record !== null &&
-    data.battle_record !== undefined &&
-    typeof data.battle_record !== "object"
+    data.battle_record !== undefined
   ) {
-    throw new Error("invalid_battle_record");
+    const check = validateBattleRecord(data.battle_record);
+    if (!check.valid) {
+      throw new Error(check.reason);
+    }
   }
 }
 
@@ -302,12 +304,11 @@ function validateSubmission(data: SubmitOqInput): {
     throw new Error("invalid_api_cost_monthly");
   }
 
-  if (
-    data.battle_record !== undefined &&
-    data.battle_record !== null &&
-    typeof data.battle_record !== "object"
-  ) {
-    throw new Error("invalid_battle_record");
+  if (data.battle_record !== undefined && data.battle_record !== null) {
+    const check = validateBattleRecord(data.battle_record);
+    if (!check.valid) {
+      throw new Error(check.reason);
+    }
   }
 
   return {

@@ -485,4 +485,130 @@ describe("createLeaderboardRoutes", () => {
       expect(await response.json()).toEqual({ error: "invalid_level" });
     }
   });
+
+  test("GET /leaderboard?search= filters by display_name substring", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "alice@example.com",
+        display_name: "Alice Wang",
+        oq_value: 90000,
+        level: 6,
+        tokens_monthly: 1000,
+        battle_record: "9-0",
+        updated_at: "2026-03-01T00:00:00.000Z",
+      },
+      {
+        email: "bob@example.com",
+        display_name: "Bob Chen",
+        oq_value: 80000,
+        level: 5,
+        tokens_monthly: 900,
+        battle_record: "8-0",
+        updated_at: "2026-03-02T00:00:00.000Z",
+      },
+      {
+        email: "charlie@example.com",
+        display_name: "Charlie Wang",
+        oq_value: 70000,
+        level: 4,
+        tokens_monthly: 800,
+        battle_record: "7-0",
+        updated_at: "2026-03-03T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard?search=Wang");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.leaderboard).toHaveLength(2);
+    expect(body.leaderboard.map((e: { display_name: string }) => e.display_name)).toEqual([
+      "Alice Wang",
+      "Charlie Wang",
+    ]);
+    expect(body.pagination.total).toBe(2);
+  });
+
+  test("GET /leaderboard?search= with empty string returns all", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "a@example.com",
+        display_name: "A",
+        oq_value: 90000,
+        level: 6,
+        tokens_monthly: 100,
+        battle_record: "1-0",
+        updated_at: "2026-03-01T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard?search=");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.leaderboard).toHaveLength(1);
+  });
+
+  test("GET /leaderboard/stats returns community statistics", async () => {
+    const { app, db } = createTestApp();
+
+    seedProfiles(db, [
+      {
+        email: "s1@example.com",
+        display_name: "S1",
+        oq_value: 90000,
+        level: 6,
+        oq_type: "統御型",
+        tokens_monthly: 1000,
+        battle_record: "9-0",
+        updated_at: "2026-03-01T00:00:00.000Z",
+      },
+      {
+        email: "s2@example.com",
+        display_name: "S2",
+        oq_value: 80000,
+        level: 5,
+        oq_type: "統御型",
+        tokens_monthly: 900,
+        battle_record: "8-0",
+        updated_at: "2026-03-02T00:00:00.000Z",
+      },
+      {
+        email: "s3@example.com",
+        display_name: "S3",
+        oq_value: 70000,
+        level: 5,
+        oq_type: "放大型",
+        tokens_monthly: 800,
+        battle_record: "7-0",
+        updated_at: "2026-03-03T00:00:00.000Z",
+      },
+    ]);
+
+    const response = await app.request("/leaderboard/stats");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.stats.total_users).toBe(3);
+    expect(body.stats.avg_oq).toBe(80000);
+    expect(body.stats.max_oq).toBe(90000);
+    expect(body.stats.min_oq).toBe(70000);
+    expect(body.stats.by_level).toEqual({ "5": 2, "6": 1 });
+    expect(body.stats.by_type).toEqual({ "統御型": 2, "放大型": 1 });
+  });
+
+  test("GET /leaderboard/stats returns zeros when empty", async () => {
+    const { app } = createTestApp();
+
+    const response = await app.request("/leaderboard/stats");
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.stats.total_users).toBe(0);
+    expect(body.stats.avg_oq).toBe(0);
+  });
 });

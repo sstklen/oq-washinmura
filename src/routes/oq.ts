@@ -28,6 +28,8 @@ const badRequestErrors = new Set([
 
 import { LEVEL_TITLES, parsePositiveInt } from "../constants";
 
+const MAX_DISPLAY_NAME_LENGTH = 50;
+
 export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number } }> {
   const app = new Hono<{ Variables: { userId: number } }>();
 
@@ -51,7 +53,7 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
        FROM oq_profiles
        INNER JOIN users ON users.id = oq_profiles.user_id
        WHERE oq_profiles.id = ?`,
-    ).get(oqId) as { oq_id: number; display_name: string | null; oq_value: number; level: number | null; tokens_monthly: number | null; battle_record: string | null; updated_at: string | null } | null;
+    ).get(oqId) as { oq_id: number; display_name: string; oq_value: number; level: number; tokens_monthly: number; battle_record: string; updated_at: string } | null;
 
     if (!row) {
       return c.json({ error: "oq_not_found" }, 404);
@@ -71,16 +73,75 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
     });
   });
 
+  // GET /me — 登入用戶查自己的 profile（不需要知道 oq_id）
+  app.get("/me", authGuard, (c) => {
+    const userId = c.get("userId");
+
+    const row = db.query(
+      `SELECT
+          oq_profiles.id AS oq_id,
+          oq_profiles.oq_token,
+          COALESCE(users.display_name, 'Anonymous') AS display_name,
+          oq_profiles.oq_value,
+          COALESCE(oq_profiles.level, 1) AS level,
+          oq_profiles.oq_type,
+          oq_profiles.tokens_monthly,
+          oq_profiles.api_cost_monthly,
+          oq_profiles.battle_record,
+          oq_profiles.fingerprint,
+          COALESCE(oq_profiles.contactable, 1) AS contactable,
+          oq_profiles.updated_at
+       FROM oq_profiles
+       INNER JOIN users ON users.id = oq_profiles.user_id
+       WHERE oq_profiles.user_id = ?`,
+    ).get(userId) as {
+      oq_id: number; oq_token: string | null; display_name: string;
+      oq_value: number; level: number; oq_type: string | null;
+      tokens_monthly: number; api_cost_monthly: number;
+      battle_record: string | null; fingerprint: string | null;
+      contactable: number; updated_at: string | null;
+    } | null;
+
+    if (!row) {
+      return c.json({ error: "oq_not_found", hint: "use POST /api/oq/submit first" }, 404);
+    }
+
+    return c.json({
+      profile: {
+        oq_id: row.oq_id,
+        oq_token: row.oq_token,
+        display_name: row.display_name,
+        oq_value: row.oq_value,
+        level: row.level,
+        level_title: LEVEL_TITLES[row.level] ?? "",
+        oq_type: row.oq_type,
+        tokens_monthly: row.tokens_monthly,
+        api_cost_monthly: row.api_cost_monthly,
+        battle_record: row.battle_record ? (() => { try { return JSON.parse(row.battle_record as string); } catch { return row.battle_record; } })() : null,
+        fingerprint: row.fingerprint ? (() => { try { return JSON.parse(row.fingerprint as string); } catch { return null; } })() : null,
+        contactable: row.contactable === 1,
+        updated_at: row.updated_at,
+      },
+    });
+  });
+
   app.post("/submit", authGuard, async (c) => {
-    const body = await c.req.json<SubmitOqInput>();
+    const body = await c.req.json<SubmitOqInput & { display_name?: unknown }>();
 
     try {
+      const displayName = validateDisplayName(body.display_name);
+      db.query("UPDATE users SET display_name = ? WHERE id = ?").run(displayName, c.get("userId"));
+
       const result = submitOq(db, c.get("userId"), body);
       return c.json(result, 201);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === "already_submitted") {
           return c.json({ error: error.message }, 409);
+        }
+
+        if (error.message === "display_name_too_long") {
+          return c.json({ error: error.message, max: MAX_DISPLAY_NAME_LENGTH }, 400);
         }
 
         if (badRequestErrors.has(error.message)) {
@@ -158,6 +219,28 @@ export function createOqRoutes(db: Database): Hono<{ Variables: { userId: number
   });
 
   return app;
+}
+
+function validateDisplayName(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new Error("display_name_empty");
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.length === 0) {
+    throw new Error("display_name_empty");
+  }
+
+  if (trimmed.length > MAX_DISPLAY_NAME_LENGTH) {
+    throw new Error("display_name_too_long");
+  }
+
+  if (/<[^>]*>/.test(trimmed) || /on\w+\s*=/i.test(trimmed)) {
+    throw new Error("display_name_invalid");
+  }
+
+  return trimmed;
 }
 
 async function resolveUserIdFromAuthorization(

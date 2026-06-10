@@ -78,6 +78,7 @@ async function submitProfile(
     },
     body: JSON.stringify(
       body ?? {
+        display_name: "Submit Profile",
         oq_value: 85_200,
         tokens_monthly: 892_000_000,
         api_cost_monthly: 3_550,
@@ -108,6 +109,7 @@ describe("createOqRoutes", () => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        display_name: "Alpha",
         oq_value: 85_200,
         tokens_monthly: 892_000_000,
         api_cost_monthly: 3_550,
@@ -137,6 +139,7 @@ describe("createOqRoutes", () => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        display_name: "Anonymous",
         oq_value: 85_200,
         tokens_monthly: 892_000_000,
         api_cost_monthly: 3_550,
@@ -155,6 +158,7 @@ describe("createOqRoutes", () => {
       "content-type": "application/json",
     };
     const body = JSON.stringify({
+      display_name: "Dup",
       oq_value: 85_200,
       tokens_monthly: 892_000_000,
       api_cost_monthly: 3_550,
@@ -195,6 +199,7 @@ describe("createOqRoutes", () => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
+        display_name: "Zero",
         oq_value: 0,
         tokens_monthly: 0,
         api_cost_monthly: 0,
@@ -203,6 +208,95 @@ describe("createOqRoutes", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "invalid_oq_value" });
+  });
+
+  test("POST /api/oq/submit returns 400 when display_name is missing", async () => {
+    const { app, db } = createTestApp();
+    const token = await createJwt(app, db, "display-missing@example.com");
+
+    const response = await app.request("/api/oq/submit", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        oq_value: 12_300,
+        tokens_monthly: 300_000,
+        api_cost_monthly: 10,
+        battle_record: {
+          bash: 10,
+          commits: 10,
+          edits: 20,
+          agents: 1,
+          web: 1,
+          total: 42,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "display_name_empty" });
+  });
+
+  test("POST /api/oq/submit returns 400 when display_name is empty", async () => {
+    const { app, db } = createTestApp();
+    const token = await createJwt(app, db, "display-empty@example.com");
+
+    const response = await app.request("/api/oq/submit", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        display_name: "   ",
+        oq_value: 12_300,
+        tokens_monthly: 300_000,
+        api_cost_monthly: 10,
+        battle_record: {
+          bash: 10,
+          commits: 10,
+          edits: 20,
+          agents: 1,
+          web: 1,
+          total: 42,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "display_name_empty" });
+  });
+
+  test("POST /api/oq/submit returns 400 when display_name is too long", async () => {
+    const { app, db } = createTestApp();
+    const token = await createJwt(app, db, "display-long@example.com");
+
+    const response = await app.request("/api/oq/submit", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        display_name: "a".repeat(51),
+        oq_value: 12_300,
+        tokens_monthly: 300_000,
+        api_cost_monthly: 10,
+        battle_record: {
+          bash: 10,
+          commits: 10,
+          edits: 20,
+          agents: 1,
+          web: 1,
+          total: 42,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "display_name_too_long", max: 50 });
   });
 
   test("PUT /api/oq/update returns 200 when updating by oq_token", async () => {
@@ -241,6 +335,7 @@ describe("createOqRoutes", () => {
       oq_value: 50_000,
       tokens_monthly: 60_000_000,
       api_cost_monthly: 200,
+      display_name: "Stranger",
     });
 
     const response = await app.request("/api/oq/update", {
@@ -323,5 +418,43 @@ describe("createOqRoutes", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "display_name_too_long", max: 30 });
+  });
+
+  test("GET /api/oq/me returns own profile for authenticated user", async () => {
+    const { app, db } = createTestApp();
+    const token = await createJwt(app, db, "me@example.com");
+    await submitProfile(app, token, { display_name: "Display Me" });
+
+    const response = await app.request("/api/oq/me", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.profile.oq_value).toBe(85_200);
+    expect(body.profile.oq_token).toMatch(/^oq_[a-f0-9]{12}$/);
+    expect(body.profile.level).toBe(3);
+    expect(body.profile.contactable).toBe(true);
+    expect(body.profile.display_name).toBe("Display Me");
+  });
+
+  test("GET /api/oq/me returns 404 when no profile submitted", async () => {
+    const { app, db } = createTestApp();
+    const token = await createJwt(app, db, "noprofile@example.com");
+
+    const response = await app.request("/api/oq/me", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "oq_not_found", hint: "use POST /api/oq/submit first" });
+  });
+
+  test("GET /api/oq/me returns 401 without JWT", async () => {
+    const { app } = createTestApp();
+
+    const response = await app.request("/api/oq/me");
+
+    expect(response.status).toBe(401);
   });
 });

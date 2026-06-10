@@ -26,3 +26,50 @@ export function parsePositiveInt(value: string): number | null {
 export function hasField<T extends object>(obj: T, key: PropertyKey): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key);
 }
+
+// 取得等級稱號（找不到則回傳 null）
+export function getLevelTitle(level: number): string | null {
+  return LEVEL_TITLES[level] ?? null;
+}
+
+// BattleRecord 必要欄位（不含 total，total 由其餘欄位加總驗證）
+const BATTLE_RECORD_COMPONENT_KEYS = ["bash", "commits", "edits", "agents", "web"] as const;
+
+// 嚴格驗證 BattleRecord：六欄位皆須為非負整數，total 必須等於其餘五欄位之和
+export function validateBattleRecord(value: unknown): { valid: true } | { valid: false; reason: string } {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return { valid: false, reason: "battle_record_not_object" };
+  }
+
+  const record = value as Record<string, unknown>;
+
+  // 檢查所有必要欄位存在且為非負整數
+  for (const key of BATTLE_RECORD_COMPONENT_KEYS) {
+    const v = record[key];
+    if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0) {
+      return { valid: false, reason: `battle_record_invalid_${key}` };
+    }
+  }
+
+  // total 也必須為非負整數
+  if (typeof record.total !== "number" || !Number.isSafeInteger(record.total) || record.total < 0) {
+    return { valid: false, reason: "battle_record_invalid_total" };
+  }
+
+  // total 必須等於其餘欄位之和
+  const expectedTotal = BATTLE_RECORD_COMPONENT_KEYS.reduce(
+    (sum, key) => sum + (record[key] as number),
+    0,
+  );
+
+  if (record.total !== expectedTotal) {
+    return { valid: false, reason: "battle_record_total_mismatch" };
+  }
+
+  return { valid: true };
+}
+
+// OQ 分數格式化輸出，保留 1 位小數並加上單位
+export function formatOqScore(score: number): string {
+  return `${Number.isFinite(score) ? score.toFixed(1) : "NaN"} OQ`;
+}
