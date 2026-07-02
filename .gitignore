@@ -2,3 +2,6 @@ node_modules/
 data/
 .env
 *.db
+
+# 2026-07-02 structure-arrange: 備份檔禁入版控 (要備份用 git, .bak 挪 trash-bin)
+*.bak*
